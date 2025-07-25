@@ -20,10 +20,8 @@ interface ContentItem {
   is_promoted: boolean;
   category?: string;
   created_at: string;
-  // Admin content specific
   admin_id?: string;
   approval_status?: string;
-  // Posts specific
   provider_id?: string;
   caption?: string;
   post_type?: string;
@@ -37,31 +35,28 @@ interface ContentCardProps {
 }
 
 export const ContentCard = ({ content, onLike, onShare }: ContentCardProps) => {
-  const [isLiked, setIsLiked] = useState(true);
+  const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(content.like_count);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleLike = async () => {
     if (isLoading) return;
-    
     setIsLoading(true);
     try {
       if (isLiked) {
-        // Unlike logic would go here
+        // Unlike logic (implement if needed)
         setLikeCount(prev => prev - 1);
         setIsLiked(false);
       } else {
-        // Increment view count and like
+        // Like logic
         await supabase.rpc('increment_content_view', { content_id: content.id });
         setLikeCount(prev => prev + 1);
         setIsLiked(true);
-        
         toast({
           title: "Liked!",
           description: "Content added to your favorites"
         });
       }
-      
       onLike?.(content.id);
     } catch (error) {
       console.error('Error liking content:', error);
@@ -71,11 +66,7 @@ export const ContentCard = ({ content, onLike, onShare }: ContentCardProps) => {
         variant: "destructive"
       });
     } finally {
-      setIsLoading(true)
-        
-      } catch (error) {
-        
-      });
+      setIsLoading(false);
     }
   };
 
@@ -124,11 +115,9 @@ export const ContentCard = ({ content, onLike, onShare }: ContentCardProps) => {
             </Badge>
           )}
         </div>
-        
         <h3 className="font-semibold text-foreground mb-1 line-clamp-2">
           {content.title}
         </h3>
-        
         {(content.description || content.caption) && (
           <p className="text-sm text-muted-foreground line-clamp-3 mb-3">
             {content.description || content.caption}
@@ -190,7 +179,6 @@ export const ContentCard = ({ content, onLike, onShare }: ContentCardProps) => {
                 <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
                 <span className="text-sm">{likeCount}</span>
               </Button>
-              
               <Button
                 variant="ghost"
                 size="sm"
@@ -201,7 +189,6 @@ export const ContentCard = ({ content, onLike, onShare }: ContentCardProps) => {
                 <span className="text-sm">{content.share_count}</span>
               </Button>
             </div>
-            
             <div className="flex items-center gap-1 text-muted-foreground">
               <Eye className="w-4 h-4" />
               <span className="text-sm">{content.view_count}</span>
@@ -211,5 +198,4 @@ export const ContentCard = ({ content, onLike, onShare }: ContentCardProps) => {
       </CardContent>
     </Card>
   );
-import name from "module"
 };
