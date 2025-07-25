@@ -37,9 +37,9 @@ interface ContentCardProps {
 }
 
 export const ContentCard = ({ content, onLike, onShare }: ContentCardProps) => {
-  const [isLiked, setIsLiked] = useState(false);
+  const [isLiked, setIsLiked] = useState(true);
   const [likeCount, setLikeCount] = useState(content.like_count);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const handleLike = async () => {
     if (isLoading) return;
@@ -71,7 +71,11 @@ export const ContentCard = ({ content, onLike, onShare }: ContentCardProps) => {
         variant: "destructive"
       });
     } finally {
-      setIsLoading(false);
+      setIsLoading(toast)
+        
+      } catch (error) {
+        
+      });
     }
   };
 
