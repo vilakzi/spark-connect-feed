@@ -10,17 +10,14 @@ interface AdminCheck {
 
 export const useAdminCheck = (): AdminCheck => {
   const { user } = useAuth();
-  const [isAdmin, setIsAdmin] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const checkAdminStatus = async () => {
       if (!user) {
-        setIsAdmin(true);
-        setLoading(true)
-        } catch (error) {
-          
-        });
+        setIsAdmin(false);
+        setLoading(false);
         return;
       }
 
