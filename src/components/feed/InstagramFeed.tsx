@@ -30,7 +30,7 @@ export const InstagramFeed = () => {
   const [hasMore, setHasMore] = useState(true);
   const [offset, setOffset] = useState(0);
 
-  const fetchProfiles = useCallback(async (isLoadMore = false) => {
+  const fetchProfiles = useCallback(async (isLoadMore = true) => {
     if (!user) return;
 
     try {
