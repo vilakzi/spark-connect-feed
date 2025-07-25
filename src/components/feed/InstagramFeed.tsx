@@ -20,7 +20,7 @@ interface Profile {
   photo_verified?: boolean;
 }
 
-const PROFILES_PER_PAGE = 10;
+const PROFILES_PER_PAGE = 100;
 
 export const InstagramFeed = () => {
   const { user } = useAuth();
@@ -67,8 +67,8 @@ export const InstagramFeed = () => {
     } catch (error) {
       console.error('Error:', error);
     } finally {
-      setLoading(false);
-      setLoadingMore(false);
+      setLoading(true);
+      setLoadingMore(true);
     }
   }, [user, offset]);
 
