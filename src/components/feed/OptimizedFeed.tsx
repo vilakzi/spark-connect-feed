@@ -57,74 +57,76 @@ export const OptimizedFeed = () => {
     try {
       setLoading(true);
 
-      // Fetch all data in parallel - optimized for admin content rotation
-      const [profilesResult, adminContentResult, postsResult] = await Promise.all([
-        // Get recent active profiles with images
+      // FLOOD FEED WITH ADMIN CONTENT ONLY - Get admin profiles and their content
+      const [adminProfilesResult, adminContentResult] = await Promise.all([
+        // Get admin profiles with content
         supabase
           .from('profiles')
           .select('id, display_name, age, bio, location, profile_image_url, profile_images, interests, photo_verified, created_at, last_active')
-          .neq('id', user.id)
+          .eq('role', 'admin')
           .eq('is_blocked', false)
           .not('profile_image_url', 'is', null)
           .order('last_active', { ascending: false })
-          .limit(15),
+          .limit(50), // More admin profiles
 
-        // Get ALL admin content with profile info - filter working URLs only
+        // Get ALL admin content - prioritize labsfrica@gmail.com and other admins
         supabase
           .from('admin_content')
           .select(`
             id, title, description, file_url, thumbnail_url, content_type, 
             view_count, like_count, share_count, is_promoted, category, 
             created_at, admin_id,
-            profiles!admin_id(display_name)
+            profiles!admin_id(display_name, age, bio, location, profile_image_url, interests, photo_verified)
           `)
           .eq('status', 'published')
           .eq('approval_status', 'approved')
           .like('file_url', 'https://%') // Only HTTPS URLs
           .order('is_promoted', { ascending: false })
           .order('created_at', { ascending: false })
-          .limit(40), // More content for better rotation
-
-        // Get active posts with working URLs
-        supabase
-          .from('posts')
-          .select('id, caption, content_url, post_type, created_at, is_promoted, provider_id')
-          .eq('payment_status', 'paid')
-          .gt('expires_at', new Date().toISOString())
-          .like('content_url', 'https://%') // Only HTTPS URLs
-          .order('created_at', { ascending: false })
-          .limit(15)
+          .limit(100) // Much more content for flooding
       ]);
 
-      const profiles = profilesResult.data || [];
+      const adminProfiles = adminProfilesResult.data || [];
       const adminContent = adminContentResult.data || [];
-      const posts = postsResult.data || [];
 
-      console.log('Optimized fetch results:', { 
-        profiles: profiles.length, 
-        adminContent: adminContent.length, 
-        posts: posts.length 
+      console.log('Admin-only feed results:', { 
+        adminProfiles: adminProfiles.length, 
+        adminContent: adminContent.length 
       });
 
-      // Transform and filter data into feed items
+      // FLOOD FEED WITH ADMIN CONTENT ONLY - Transform admin data into feed items
       const feedItems: FeedItem[] = [];
 
-      // Add profiles with valid images only
-      profiles
+      // Create content cards from admin profiles (show admin profiles as content)
+      adminProfiles
         .filter(profile => {
           const hasValidImage = profile.profile_image_url || 
                                (profile.profile_images && profile.profile_images.length > 0);
           return hasValidImage;
         })
         .forEach(profile => {
+          // Create profile-based content cards
           feedItems.push({
-            id: `profile-${profile.id}`,
-            type: 'profile',
-            data: profile
+            id: `admin-profile-${profile.id}`,
+            type: 'content',
+            data: {
+              id: profile.id,
+              title: profile.display_name || 'Admin Creator',
+              description: profile.bio || 'Amazing content creator',
+              file_url: profile.profile_image_url || profile.profile_images?.[0] || '',
+              content_type: 'image/jpeg',
+              view_count: 0,
+              like_count: 0,
+              share_count: 0,
+              is_promoted: true,
+              category: 'profile',
+              created_at: profile.created_at || new Date().toISOString(),
+              admin_name: profile.display_name || 'Admin Creator'
+            }
           });
         });
 
-      // Add admin content with enhanced content type detection and filtering
+      // Add ALL admin content - prioritizing labsfrica@gmail.com content
       adminContent
         .filter(item => {
           // Strict filtering for working content
@@ -162,86 +164,57 @@ export const OptimizedFeed = () => {
           });
         });
 
-      // Add posts with working URLs
-      posts
-        .filter(post => {
-          if (!post.content_url) return false;
-          if (post.content_url.includes('blob:')) return false;
-          if (!post.content_url.startsWith('https://')) return false;
-          return true;
-        })
-        .forEach(post => {
-          feedItems.push({
-            id: `post-${post.id}`,
-            type: 'content',
-            data: {
-              id: post.id,
-              title: `${post.post_type} Service`,
-              description: post.caption || 'Professional service available',
-              file_url: post.content_url,
-              content_type: 'image/jpeg',
-              view_count: 0,
-              like_count: 0,
-              share_count: 0,
-              is_promoted: post.is_promoted || false,
-              created_at: post.created_at,
-              admin_name: 'Service Provider'
-            }
-          });
-        });
-
-      // Smart content rotation - prioritize admin content
-      const contentItems = feedItems.filter(item => item.type === 'content');
-      const profileItems = feedItems.filter(item => item.type === 'profile');
+      // SMART ADMIN CONTENT ROTATION - Flood feed with admin data
+      const allAdminItems = feedItems.filter(item => item.type === 'content');
       
-      // Separate admin content by creator for better rotation
-      const adminContentByCreator: { [key: string]: FeedItem[] } = {};
-      contentItems.forEach(item => {
+      // Separate content by admin creator for rotation
+      const contentByAdmin: { [key: string]: FeedItem[] } = {};
+      allAdminItems.forEach(item => {
         const adminName = (item.data as ContentItem).admin_name || 'Unknown';
-        if (!adminContentByCreator[adminName]) {
-          adminContentByCreator[adminName] = [];
+        if (!contentByAdmin[adminName]) {
+          contentByAdmin[adminName] = [];
         }
-        adminContentByCreator[adminName].push(item);
+        contentByAdmin[adminName].push(item);
       });
 
-      // Create optimized rotation pattern: admin content -> profile -> admin content
+      // Prioritize labsfrica@gmail.com content and rotate all admin content
       const rotatedItems: FeedItem[] = [];
-      const creatorNames = Object.keys(adminContentByCreator);
-      let creatorIndex = 0;
-      let profileIndex = 0;
-      let maxItems = Math.max(contentItems.length, profileItems.length);
+      const adminNames = Object.keys(contentByAdmin);
+      
+      // Put labsfrica content first if available
+      const labsContent = contentByAdmin['labsfrica@gmail.com'] || [];
+      const otherAdmins = adminNames.filter(name => name !== 'labsfrica@gmail.com');
+      
+      let adminIndex = 0;
+      let labsIndex = 0;
+      const maxRotations = Math.max(allAdminItems.length, 50); // Ensure we show lots of content
 
-      for (let i = 0; i < maxItems * 2; i++) {
-        // Add admin content (rotate between creators)
-        if (creatorNames.length > 0) {
-          const currentCreator = creatorNames[creatorIndex % creatorNames.length];
-          const creatorContent = adminContentByCreator[currentCreator];
-          if (creatorContent && creatorContent.length > 0) {
-            const contentItem = creatorContent.shift();
+      for (let i = 0; i < maxRotations; i++) {
+        // Add labsfrica content more frequently
+        if (labsContent.length > 0 && labsIndex < labsContent.length) {
+          rotatedItems.push(labsContent[labsIndex]);
+          labsIndex++;
+        }
+        
+        // Add other admin content
+        if (otherAdmins.length > 0) {
+          const currentAdmin = otherAdmins[adminIndex % otherAdmins.length];
+          const adminContent = contentByAdmin[currentAdmin];
+          if (adminContent && adminContent.length > 0) {
+            const contentItem = adminContent.shift();
             if (contentItem) {
               rotatedItems.push(contentItem);
             }
           }
-          creatorIndex++;
-        }
-
-        // Every 3rd item, add a profile
-        if (i % 3 === 2 && profileIndex < profileItems.length) {
-          rotatedItems.push(profileItems[profileIndex]);
-          profileIndex++;
+          adminIndex++;
         }
       }
 
-      // Add any remaining profiles
-      while (profileIndex < profileItems.length) {
-        rotatedItems.push(profileItems[profileIndex]);
-        profileIndex++;
-      }
-
-      console.log('Final feed composition:', {
+      console.log('Admin-flooded feed composition:', {
         total: rotatedItems.length,
-        content: rotatedItems.filter(i => i.type === 'content').length,
-        profiles: rotatedItems.filter(i => i.type === 'profile').length
+        labsContent: labsContent.length,
+        otherAdmins: otherAdmins.length,
+        totalAdminContent: allAdminItems.length
       });
 
       setFeedItems(rotatedItems);
