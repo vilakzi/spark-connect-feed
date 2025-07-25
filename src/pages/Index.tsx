@@ -7,9 +7,11 @@ import { InstagramFeed } from '@/components/feed/InstagramFeed';
 import { SwipeInterface } from '@/components/swipe/SwipeInterface';
 import { MatchesList } from '@/components/matches/MatchesList';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
-import { LogOut, Heart, Users, Layers, Star } from 'lucide-react';
+import { ProfileEdit } from '@/components/profile/ProfileEdit';
+import { ProfileCompletion } from '@/components/profile/ProfileCompletion';
+import { LogOut, Heart, Users, Layers, Star, User } from 'lucide-react';
 
-type ViewMode = 'swipe' | 'feed' | 'matches';
+type ViewMode = 'swipe' | 'feed' | 'matches' | 'profile' | 'editProfile';
 
 const Index = () => {
   const { user, signOut } = useAuth();
@@ -32,10 +34,19 @@ const Index = () => {
         return <InstagramFeed />;
       case 'matches':
         return <MatchesList />;
+      case 'profile':
+        return <ProfileCompletion onEditProfile={() => setCurrentView('editProfile')} />;
+      case 'editProfile':
+        return <ProfileEdit onBack={() => setCurrentView('profile')} />;
       default:
         return <SwipeInterface />;
     }
   };
+
+  // Don't render navigation for edit profile view
+  if (currentView === 'editProfile') {
+    return renderContent();
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -63,6 +74,10 @@ const Index = () => {
       <main className="flex-1 relative">
         {currentView === 'swipe' ? (
           <div className="h-[calc(100vh-140px)] p-4">
+            {renderContent()}
+          </div>
+        ) : currentView === 'profile' ? (
+          <div className="container mx-auto px-4 py-6 max-w-md">
             {renderContent()}
           </div>
         ) : (
@@ -94,6 +109,16 @@ const Index = () => {
             >
               <Users className="w-5 h-5" />
               <span className="text-xs">Matches</span>
+            </Button>
+            
+            <Button
+              variant={currentView === 'profile' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setCurrentView('profile')}
+              className="flex flex-col items-center gap-1 h-auto py-2 px-4"
+            >
+              <User className="w-5 h-5" />
+              <span className="text-xs">Profile</span>
             </Button>
             
             <Button
