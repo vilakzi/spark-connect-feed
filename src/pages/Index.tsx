@@ -4,8 +4,7 @@ import { usePresence } from '@/hooks/usePresence';
 import { useActivityTracker } from '@/hooks/useActivityTracker';
 import { useChat } from '@/hooks/useChat';
 import { Button } from '@/components/ui/button';
-import { ContentFeed } from '@/components/feed/ContentFeed';
-import { SwipeInterface } from '@/components/swipe/SwipeInterface';
+import { UnifiedFeed } from '@/components/feed/UnifiedFeed';
 import { MatchesList } from '@/components/matches/MatchesList';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
 import { ProfileEdit } from '@/components/profile/ProfileEdit';
@@ -15,14 +14,14 @@ import { ChatInterface } from '@/components/chat/ChatInterface';
 import { LogOut, Heart, Users, Layers, Star, User, MessageCircle, Settings } from 'lucide-react';
 import { useAdminCheck } from '@/hooks/useAdminCheck';
 
-type ViewMode = 'swipe' | 'feed' | 'matches' | 'profile' | 'editProfile' | 'chat' | 'chatInterface';
+type ViewMode = 'feed' | 'matches' | 'profile' | 'editProfile' | 'chat' | 'chatInterface';
 
 const Index = () => {
   const { user, signOut } = useAuth();
   const { updatePresence } = usePresence();
   const { dailyStats } = useActivityTracker();
   const { isAdmin } = useAdminCheck();
-  const [currentView, setCurrentView] = useState<ViewMode>('swipe');
+  const [currentView, setCurrentView] = useState<ViewMode>('feed');
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const { createConversation } = useChat();
 
@@ -53,10 +52,8 @@ const Index = () => {
 
   const renderContent = () => {
     switch (currentView) {
-      case 'swipe':
-        return <SwipeInterface />;
       case 'feed':
-        return <ContentFeed />;
+        return <UnifiedFeed />;
       case 'matches':
         return <MatchesList onStartChat={handleStartChat} />;
       case 'chat':
@@ -73,7 +70,7 @@ const Index = () => {
       case 'editProfile':
         return <ProfileEdit onBack={() => setCurrentView('profile')} />;
       default:
-        return <SwipeInterface />;
+        return <UnifiedFeed />;
     }
   };
 
@@ -117,18 +114,12 @@ const Index = () => {
 
       {/* Main Content */}
       <main className="flex-1 relative">
-        {currentView === 'swipe' ? (
-          <div className="h-[calc(100vh-140px)] p-4">
-            {renderContent()}
-          </div>
-        ) : currentView === 'profile' ? (
+        {currentView === 'profile' ? (
           <div className="container mx-auto px-4 py-6 max-w-md">
             {renderContent()}
           </div>
         ) : (
-          <div className="container mx-auto px-4 py-6">
-            {renderContent()}
-          </div>
+          renderContent()
         )}
       </main>
 
@@ -137,13 +128,13 @@ const Index = () => {
         <div className="container mx-auto px-4">
           <div className="flex justify-around py-2">
             <Button
-              variant={currentView === 'swipe' ? 'default' : 'ghost'}
+              variant={currentView === 'feed' ? 'default' : 'ghost'}
               size="sm"
-              onClick={() => setCurrentView('swipe')}
+              onClick={() => setCurrentView('feed')}
               className="flex flex-col items-center gap-1 h-auto py-2 px-4"
             >
-              <Star className="w-5 h-5" />
-              <span className="text-xs">Discover</span>
+              <Layers className="w-5 h-5" />
+              <span className="text-xs">Feed</span>
             </Button>
             
             <Button
@@ -174,16 +165,6 @@ const Index = () => {
             >
               <User className="w-5 h-5" />
               <span className="text-xs">Profile</span>
-            </Button>
-            
-            <Button
-              variant={currentView === 'feed' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setCurrentView('feed')}
-              className="flex flex-col items-center gap-1 h-auto py-2 px-4"
-            >
-              <Layers className="w-5 h-5" />
-              <span className="text-xs">Feed</span>
             </Button>
           </div>
         </div>
