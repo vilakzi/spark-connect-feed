@@ -12,7 +12,8 @@ import { ProfileEdit } from '@/components/profile/ProfileEdit';
 import { ProfileCompletion } from '@/components/profile/ProfileCompletion';
 import { ConversationList } from '@/components/chat/ConversationList';
 import { ChatInterface } from '@/components/chat/ChatInterface';
-import { LogOut, Heart, Users, Layers, Star, User, MessageCircle } from 'lucide-react';
+import { LogOut, Heart, Users, Layers, Star, User, MessageCircle, Settings } from 'lucide-react';
+import { useAdminCheck } from '@/hooks/useAdminCheck';
 
 type ViewMode = 'swipe' | 'feed' | 'matches' | 'profile' | 'editProfile' | 'chat' | 'chatInterface';
 
@@ -20,6 +21,7 @@ const Index = () => {
   const { user, signOut } = useAuth();
   const { updatePresence } = usePresence();
   const { dailyStats } = useActivityTracker();
+  const { isAdmin } = useAdminCheck();
   const [currentView, setCurrentView] = useState<ViewMode>('swipe');
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const { createConversation } = useChat();
@@ -92,6 +94,17 @@ const Index = () => {
           
           <div className="flex items-center gap-3">
             <NotificationCenter />
+            {isAdmin && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => window.open('/admin', '_blank')}
+                className="hidden sm:flex"
+              >
+                <Settings className="w-4 h-4 mr-2" />
+                Admin
+              </Button>
+            )}
             <span className="text-sm text-muted-foreground hidden sm:block">
               {user?.user_metadata?.display_name || user?.email}
             </span>
