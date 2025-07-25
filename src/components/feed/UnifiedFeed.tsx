@@ -19,6 +19,8 @@ interface Profile {
   interests?: string[] | null;
   verifications?: any;
   photo_verified?: boolean;
+  created_at?: string;
+  last_active?: string;
   type: 'profile';
 }
 
@@ -36,12 +38,16 @@ interface ContentItem {
   category?: string;
   created_at: string;
   caption?: string;
+  admin_name?: string;
   type: 'content';
 }
 
 type FeedItem = Profile | ContentItem;
 
-const ITEMS_PER_PAGE = 10;
+const ITEMS_PER_PAGE = 25;
+const PROFILE_RATIO = 0.2;
+const ADMIN_CONTENT_RATIO = 0.5;
+const POSTS_RATIO = 0.3;
 
 export const UnifiedFeed = () => {
   const { user } = useAuth();
@@ -52,46 +58,80 @@ export const UnifiedFeed = () => {
   const [offset, setOffset] = useState(0);
 
   const fetchFeedItems = useCallback(async (isLoadMore = false) => {
-    if (!user) return;
-
     try {
       const currentOffset = isLoadMore ? offset : 0;
       
-      // Fetch profiles (excluding already swiped ones)
-      const { data: swipedProfiles } = await supabase
-        .from('swipes')
-        .select('target_user_id')
-        .eq('user_id', user.id);
+      // Calculate items per content type based on ratios
+      const profilesCount = Math.floor(ITEMS_PER_PAGE * PROFILE_RATIO);
+      const adminContentCount = Math.floor(ITEMS_PER_PAGE * ADMIN_CONTENT_RATIO);
+      const postsCount = Math.floor(ITEMS_PER_PAGE * POSTS_RATIO);
 
-      const swipedIds = swipedProfiles?.map(s => s.target_user_id) || [];
+      // Fetch profiles (only if user is authenticated)
+      let profiles = [];
+      if (user) {
+        const { data: swipedProfiles } = await supabase
+          .from('swipes')
+          .select('target_user_id')
+          .eq('user_id', user.id);
 
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('*')
-        .neq('id', user.id)
-        .eq('is_blocked', false)
-        .not('id', 'in', `(${swipedIds.length ? swipedIds.join(',') : 'null'})`)
-        .order('last_active', { ascending: false })
-        .range(currentOffset, currentOffset + Math.floor(ITEMS_PER_PAGE / 2) - 1);
+        const swipedIds = swipedProfiles?.map(s => s.target_user_id) || [];
 
-      // Fetch admin content
-      const { data: adminContent } = await supabase
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('*')
+          .neq('id', user.id)
+          .eq('is_blocked', false)
+          .not('id', 'in', `(${swipedIds.length ? swipedIds.join(',') : 'null'})`)
+          .order('last_active', { ascending: false })
+          .range(currentOffset, currentOffset + profilesCount - 1);
+        
+        profiles = profilesData || [];
+      }
+
+      // Fetch admin content with promoted content first
+      const { data: promotedContent } = await supabase
         .from('admin_content')
         .select('*')
         .eq('status', 'published')
         .eq('visibility', 'public')
         .eq('approval_status', 'approved')
-        .order('created_at', { ascending: false })
-        .range(currentOffset, currentOffset + Math.floor(ITEMS_PER_PAGE / 4) - 1);
+        .eq('is_promoted', true)
+        .order('promotion_priority', { ascending: false })
+        .order('promoted_at', { ascending: false })
+        .limit(Math.floor(adminContentCount / 2));
 
-      // Fetch posts
-      const { data: posts } = await supabase
+      const { data: regularContent } = await supabase
+        .from('admin_content')
+        .select('*')
+        .eq('status', 'published')
+        .eq('visibility', 'public')
+        .eq('approval_status', 'approved')
+        .eq('is_promoted', false)
+        .order('created_at', { ascending: false })
+        .range(currentOffset, currentOffset + Math.ceil(adminContentCount / 2) - 1);
+
+      const adminContent = [...(promotedContent || []), ...(regularContent || [])].slice(0, adminContentCount);
+
+      // Fetch posts with promoted posts first
+      const { data: promotedPosts } = await supabase
         .from('posts')
         .select('*')
         .eq('payment_status', 'paid')
         .gt('expires_at', new Date().toISOString())
+        .eq('is_promoted', true)
         .order('created_at', { ascending: false })
-        .range(currentOffset, currentOffset + Math.floor(ITEMS_PER_PAGE / 4) - 1);
+        .limit(Math.floor(postsCount / 2));
+
+      const { data: regularPosts } = await supabase
+        .from('posts')
+        .select('*')
+        .eq('payment_status', 'paid')
+        .gt('expires_at', new Date().toISOString())
+        .eq('is_promoted', false)
+        .order('created_at', { ascending: false })
+        .range(currentOffset, currentOffset + Math.ceil(postsCount / 2) - 1);
+
+      const posts = [...(promotedPosts || []), ...(regularPosts || [])].slice(0, postsCount);
 
       // Transform data to unified format
       const transformedProfiles: Profile[] = (profiles || []).map(item => ({
@@ -112,6 +152,7 @@ export const UnifiedFeed = () => {
         is_promoted: item.is_promoted || false,
         category: item.category,
         created_at: item.created_at,
+        admin_name: 'Admin',
         type: 'content' as const
       }));
 
@@ -129,9 +170,30 @@ export const UnifiedFeed = () => {
         type: 'content' as const
       }));
 
-      // Mix all items and sort by creation date/activity
-      const allItems = [...transformedProfiles, ...transformedAdminContent, ...transformedPosts]
-        .sort(() => Math.random() - 0.5); // Randomize order for diverse feed
+      // Mix items intelligently: prioritize promoted content, then mix by recency
+      const promotedItems = [...transformedAdminContent.filter(item => item.is_promoted), 
+                              ...transformedPosts.filter(item => item.is_promoted)];
+      const regularItems = [...transformedProfiles, 
+                            ...transformedAdminContent.filter(item => !item.is_promoted),
+                            ...transformedPosts.filter(item => !item.is_promoted)];
+      
+      // Sort regular items by creation date/activity
+      regularItems.sort((a, b) => {
+        const aDate = new Date(
+          a.type === 'profile' 
+            ? (a as Profile).created_at || (a as Profile).last_active || 0
+            : (a as ContentItem).created_at
+        );
+        const bDate = new Date(
+          b.type === 'profile'
+            ? (b as Profile).created_at || (b as Profile).last_active || 0
+            : (b as ContentItem).created_at
+        );
+        return bDate.getTime() - aDate.getTime();
+      });
+
+      // Merge promoted content at the top, then regular content
+      const allItems = [...promotedItems, ...regularItems];
 
       if (isLoadMore) {
         setFeedItems(prev => [...prev, ...allItems]);
@@ -163,7 +225,7 @@ export const UnifiedFeed = () => {
   const handleScroll = useCallback(() => {
     if (
       window.innerHeight + document.documentElement.scrollTop >=
-      document.documentElement.offsetHeight - 1000
+      document.documentElement.offsetHeight - 500
     ) {
       loadMore();
     }
@@ -360,13 +422,23 @@ export const UnifiedFeed = () => {
                 // Content Card
                 <div className="space-y-4">
                   {/* Content Header */}
-                  <div className="p-4 pb-0 flex items-center justify-between">
+                  <div className="p-4 pb-0 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Avatar className="w-8 h-8">
+                          <AvatarFallback className="text-xs">
+                            {item.admin_name?.charAt(0).toUpperCase() || 'A'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm font-medium">{item.admin_name || 'Admin'}</span>
+                      </div>
+                      {item.is_promoted && (
+                        <Badge className="bg-gradient-to-r from-purple-500 to-pink-500">
+                          Promoted
+                        </Badge>
+                      )}
+                    </div>
                     <h3 className="font-semibold text-lg">{item.title}</h3>
-                    {item.is_promoted && (
-                      <Badge className="bg-gradient-to-r from-purple-500 to-pink-500">
-                        Promoted
-                      </Badge>
-                    )}
                   </div>
 
                   {/* Content Media */}
