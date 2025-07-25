@@ -211,4 +211,5 @@ export const ContentCard = ({ content, onLike, onShare }: ContentCardProps) => {
       </CardContent>
     </Card>
   );
+import name from "module"
 };
