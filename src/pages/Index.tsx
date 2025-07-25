@@ -1,13 +1,32 @@
+import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { InstagramFeed } from '@/components/feed/InstagramFeed';
-import { LogOut, Heart } from 'lucide-react';
+import { SwipeInterface } from '@/components/swipe/SwipeInterface';
+import { MatchesList } from '@/components/matches/MatchesList';
+import { LogOut, Heart, Users, Layers, Star } from 'lucide-react';
+
+type ViewMode = 'swipe' | 'feed' | 'matches';
 
 const Index = () => {
   const { user, signOut } = useAuth();
+  const [currentView, setCurrentView] = useState<ViewMode>('swipe');
+
+  const renderContent = () => {
+    switch (currentView) {
+      case 'swipe':
+        return <SwipeInterface />;
+      case 'feed':
+        return <InstagramFeed />;
+      case 'matches':
+        return <MatchesList />;
+      default:
+        return <SwipeInterface />;
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-sm border-b border-border">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
@@ -27,10 +46,55 @@ const Index = () => {
         </div>
       </header>
 
-      {/* Feed */}
-      <main>
-        <InstagramFeed />
+      {/* Main Content */}
+      <main className="flex-1 relative">
+        {currentView === 'swipe' ? (
+          <div className="h-[calc(100vh-140px)] p-4">
+            {renderContent()}
+          </div>
+        ) : (
+          <div className="container mx-auto px-4 py-6">
+            {renderContent()}
+          </div>
+        )}
       </main>
+
+      {/* Bottom Navigation */}
+      <nav className="sticky bottom-0 bg-background border-t border-border">
+        <div className="container mx-auto px-4">
+          <div className="flex justify-around py-2">
+            <Button
+              variant={currentView === 'swipe' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setCurrentView('swipe')}
+              className="flex flex-col items-center gap-1 h-auto py-2 px-4"
+            >
+              <Star className="w-5 h-5" />
+              <span className="text-xs">Discover</span>
+            </Button>
+            
+            <Button
+              variant={currentView === 'matches' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setCurrentView('matches')}
+              className="flex flex-col items-center gap-1 h-auto py-2 px-4"
+            >
+              <Users className="w-5 h-5" />
+              <span className="text-xs">Matches</span>
+            </Button>
+            
+            <Button
+              variant={currentView === 'feed' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setCurrentView('feed')}
+              className="flex flex-col items-center gap-1 h-auto py-2 px-4"
+            >
+              <Layers className="w-5 h-5" />
+              <span className="text-xs">Feed</span>
+            </Button>
+          </div>
+        </div>
+      </nav>
     </div>
   );
 };
