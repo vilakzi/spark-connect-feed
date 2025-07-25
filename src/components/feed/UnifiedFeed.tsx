@@ -103,7 +103,7 @@ export const UnifiedFeed = () => {
           .order('last_active', { ascending: false })
           .limit(itemCounts.profiles * 2) : Promise.resolve({ data: [], error: null }),
 
-        // Admin content - removed blocking filters for maximum content availability
+        // Admin content - show ALL admin content to ALL users
         supabase
           .from('admin_content')
           .select('id, title, description, file_url, thumbnail_url, content_type, view_count, like_count, share_count, is_promoted, category, created_at, admin_id')
@@ -112,7 +112,7 @@ export const UnifiedFeed = () => {
           .eq('approval_status', 'approved')
           .order('is_promoted', { ascending: false })
           .order('created_at', { ascending: false })
-          .limit(itemCounts.adminContent * 2),
+          .limit(itemCounts.adminContent * 3), // Increased to ensure we get more content
 
         // Posts - only essential filters to maximize content
         supabase
@@ -169,22 +169,38 @@ export const UnifiedFeed = () => {
         type: 'profile' as const
       }));
 
-      const transformedAdminContent: ContentItem[] = adminContent.map(item => ({
-        id: item.id,
-        title: item.title || 'Content',
-        description: item.description || '',
-        file_url: item.file_url,
-        thumbnail_url: item.thumbnail_url,
-        content_type: item.content_type,
-        view_count: item.view_count || 0,
-        like_count: item.like_count || 0,
-        share_count: item.share_count || 0,
-        is_promoted: item.is_promoted || false,
-        category: item.category,
-        created_at: item.created_at,
-        admin_name: adminProfileMap[item.admin_id] || 'Admin',
-        type: 'content' as const
-      }));
+      // Ensure proper content type detection
+      const transformedAdminContent: ContentItem[] = adminContent.filter(item => item.file_url).map(item => {
+        // Better content type detection
+        let contentType = item.content_type;
+        if (!contentType || contentType === 'application/octet-stream') {
+          const url = item.file_url.toLowerCase();
+          if (url.includes('.mp4') || url.includes('.mov') || url.includes('.avi') || url.includes('.webm')) {
+            contentType = 'video/mp4';
+          } else if (url.includes('.jpg') || url.includes('.jpeg') || url.includes('.png') || url.includes('.gif') || url.includes('.webp')) {
+            contentType = 'image/jpeg';
+          } else {
+            contentType = 'image/jpeg'; // Default fallback
+          }
+        }
+
+        return {
+          id: item.id,
+          title: item.title || 'Amazing Content',
+          description: item.description || 'Check out this amazing content!',
+          file_url: item.file_url,
+          thumbnail_url: item.thumbnail_url,
+          content_type: contentType,
+          view_count: item.view_count || 0,
+          like_count: item.like_count || 0,
+          share_count: item.share_count || 0,
+          is_promoted: item.is_promoted || false,
+          category: item.category,
+          created_at: item.created_at,
+          admin_name: adminProfileMap[item.admin_id] || 'Content Creator',
+          type: 'content' as const
+        };
+      });
 
       const transformedPosts: ContentItem[] = posts.map(item => ({
         id: item.id,
