@@ -1,6 +1,8 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, Heart, MessageCircle, Verified } from 'lucide-react';
+import { OnlineStatus } from '@/components/common/OnlineStatus';
+import { usePresence } from '@/hooks/usePresence';
 
 interface Profile {
   id: string;
@@ -24,10 +26,12 @@ interface ProfileCardProps {
 }
 
 export const ProfileCard = ({ profile, onLike, onMessage }: ProfileCardProps) => {
+  const { isUserOnline } = usePresence();
   const primaryImage = profile.profile_image_url || profile.profile_images?.[0];
   const isVerified = profile.photo_verified || 
     (profile.verifications && typeof profile.verifications === 'object' && 
      (profile.verifications.photoVerified || profile.verifications.emailVerified));
+  const isOnline = isUserOnline(profile.id);
 
   return (
     <Card className="w-full max-w-sm mx-auto overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
@@ -56,6 +60,11 @@ export const ProfileCard = ({ profile, onLike, onMessage }: ProfileCardProps) =>
             </Badge>
           </div>
         )}
+        
+        {/* Online Status */}
+        <div className="absolute bottom-3 right-3">
+          <OnlineStatus isOnline={isOnline} size="md" />
+        </div>
       </div>
 
       <CardContent className="p-4 space-y-3">

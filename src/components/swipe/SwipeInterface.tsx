@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { SwipeCard } from './SwipeCard';
 import { useAuth } from '@/hooks/useAuth';
+import { useActivityTracker } from '@/hooks/useActivityTracker';
 import { Button } from '@/components/ui/button';
 import { Heart, X, Star, RotateCcw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -22,6 +23,7 @@ interface Profile {
 export const SwipeInterface = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { trackActivity } = useActivityTracker();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -96,6 +98,9 @@ export const SwipeInterface = () => {
         });
         return;
       }
+
+      // Track activity
+      trackActivity('swipe');
 
       // Handle super like if applicable
       if (isSuperLike && direction === 'right') {

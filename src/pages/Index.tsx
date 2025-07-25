@@ -1,16 +1,28 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { usePresence } from '@/hooks/usePresence';
+import { useActivityTracker } from '@/hooks/useActivityTracker';
 import { Button } from '@/components/ui/button';
 import { InstagramFeed } from '@/components/feed/InstagramFeed';
 import { SwipeInterface } from '@/components/swipe/SwipeInterface';
 import { MatchesList } from '@/components/matches/MatchesList';
+import { NotificationCenter } from '@/components/notifications/NotificationCenter';
 import { LogOut, Heart, Users, Layers, Star } from 'lucide-react';
 
 type ViewMode = 'swipe' | 'feed' | 'matches';
 
 const Index = () => {
   const { user, signOut } = useAuth();
+  const { updatePresence } = usePresence();
+  const { dailyStats } = useActivityTracker();
   const [currentView, setCurrentView] = useState<ViewMode>('swipe');
+
+  // Initialize real-time features
+  useEffect(() => {
+    if (user) {
+      updatePresence();
+    }
+  }, [user, updatePresence]);
 
   const renderContent = () => {
     switch (currentView) {
@@ -36,6 +48,7 @@ const Index = () => {
           </div>
           
           <div className="flex items-center gap-3">
+            <NotificationCenter />
             <span className="text-sm text-muted-foreground hidden sm:block">
               {user?.user_metadata?.display_name || user?.email}
             </span>
