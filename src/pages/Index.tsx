@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { usePresence } from '@/hooks/usePresence';
 import { useActivityTracker } from '@/hooks/useActivityTracker';
+import { useChat } from '@/hooks/useChat';
 import { Button } from '@/components/ui/button';
 import { InstagramFeed } from '@/components/feed/InstagramFeed';
 import { SwipeInterface } from '@/components/swipe/SwipeInterface';
@@ -9,15 +10,19 @@ import { MatchesList } from '@/components/matches/MatchesList';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
 import { ProfileEdit } from '@/components/profile/ProfileEdit';
 import { ProfileCompletion } from '@/components/profile/ProfileCompletion';
-import { LogOut, Heart, Users, Layers, Star, User } from 'lucide-react';
+import { ConversationList } from '@/components/chat/ConversationList';
+import { ChatInterface } from '@/components/chat/ChatInterface';
+import { LogOut, Heart, Users, Layers, Star, User, MessageCircle } from 'lucide-react';
 
-type ViewMode = 'swipe' | 'feed' | 'matches' | 'profile' | 'editProfile';
+type ViewMode = 'swipe' | 'feed' | 'matches' | 'profile' | 'editProfile' | 'chat' | 'chatInterface';
 
 const Index = () => {
   const { user, signOut } = useAuth();
   const { updatePresence } = usePresence();
   const { dailyStats } = useActivityTracker();
   const [currentView, setCurrentView] = useState<ViewMode>('swipe');
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
+  const { createConversation } = useChat();
 
   // Initialize real-time features
   useEffect(() => {
@@ -26,6 +31,24 @@ const Index = () => {
     }
   }, [user, updatePresence]);
 
+  const handleStartChat = async (matchId: string) => {
+    const conversationId = await createConversation(matchId);
+    if (conversationId) {
+      setSelectedConversationId(conversationId);
+      setCurrentView('chatInterface');
+    }
+  };
+
+  const handleConversationSelect = (conversationId: string) => {
+    setSelectedConversationId(conversationId);
+    setCurrentView('chatInterface');
+  };
+
+  const handleBackToChat = () => {
+    setSelectedConversationId(null);
+    setCurrentView('chat');
+  };
+
   const renderContent = () => {
     switch (currentView) {
       case 'swipe':
@@ -33,7 +56,16 @@ const Index = () => {
       case 'feed':
         return <InstagramFeed />;
       case 'matches':
-        return <MatchesList />;
+        return <MatchesList onStartChat={handleStartChat} />;
+      case 'chat':
+        return <ConversationList onConversationSelect={handleConversationSelect} />;
+      case 'chatInterface':
+        return selectedConversationId ? (
+          <ChatInterface 
+            conversationId={selectedConversationId} 
+            onBack={handleBackToChat}
+          />
+        ) : null;
       case 'profile':
         return <ProfileCompletion onEditProfile={() => setCurrentView('editProfile')} />;
       case 'editProfile':
@@ -43,8 +75,8 @@ const Index = () => {
     }
   };
 
-  // Don't render navigation for edit profile view
-  if (currentView === 'editProfile') {
+  // Don't render navigation for edit profile and chat interface views
+  if (currentView === 'editProfile' || currentView === 'chatInterface') {
     return renderContent();
   }
 
@@ -109,6 +141,16 @@ const Index = () => {
             >
               <Users className="w-5 h-5" />
               <span className="text-xs">Matches</span>
+            </Button>
+            
+            <Button
+              variant={currentView === 'chat' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setCurrentView('chat')}
+              className="flex flex-col items-center gap-1 h-auto py-2 px-4"
+            >
+              <MessageCircle className="w-5 h-5" />
+              <span className="text-xs">Chat</span>
             </Button>
             
             <Button

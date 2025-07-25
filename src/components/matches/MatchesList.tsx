@@ -23,7 +23,11 @@ interface Match {
   };
 }
 
-export const MatchesList = () => {
+interface MatchesListProps {
+  onStartChat?: (matchId: string) => void;
+}
+
+export const MatchesList = ({ onStartChat }: MatchesListProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [matches, setMatches] = useState<Match[]>([]);
@@ -128,12 +132,11 @@ export const MatchesList = () => {
     };
   }, [user, toast]);
 
-  const handleMessage = (matchId: string) => {
-    // TODO: Implement messaging in later phase
-    toast({
-      title: "Coming soon!",
-      description: "Messaging will be available in the next update"
-    });
+  const handleMessage = async (matchId: string) => {
+    // Navigate to chat (will be handled by parent component)
+    if (onStartChat) {
+      onStartChat(matchId);
+    }
   };
 
   const getTimeAgo = (dateString: string) => {
