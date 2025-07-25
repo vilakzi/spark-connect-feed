@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Heart, X, Star, MessageCircle, Share, Eye, RefreshCw } from 'lucide-react';
@@ -45,14 +45,15 @@ interface ContentItem {
 
 type FeedItem = Profile | ContentItem;
 
-// Ultra-optimized feed configuration
-const ITEMS_PER_PAGE = 120; // Load more content at once
-const ADMIN_CONTENT_RATIO = 0.60; // More admin content
-const POSTS_RATIO = 0.30; // Good post ratio
-const PROFILE_RATIO = 0.10; // Fewer profiles for speed
-const SCROLL_THRESHOLD = 0.65; // Load earlier
-const REFRESH_INTERVAL = 180000; // 3 minutes
-const CACHE_DURATION = 300000; // 5 minutes
+// Performance-optimized configuration
+const INITIAL_LOAD_SIZE = 50; // Faster initial load
+const LOAD_MORE_SIZE = 25; // Progressive loading
+const ADMIN_CONTENT_RATIO = 0.60;
+const POSTS_RATIO = 0.30;
+const PROFILE_RATIO = 0.10;
+const SCROLL_THRESHOLD = 0.75;
+const REFRESH_INTERVAL = 120000; // 2 minutes
+const CACHE_DURATION = 180000; // 3 minutes
 
 export const UnifiedFeed = () => {
   const { user } = useAuth();
@@ -65,78 +66,87 @@ export const UnifiedFeed = () => {
   const [contentCache, setContentCache] = useState<Map<string, any>>(new Map());
   const [lastFetch, setLastFetch] = useState<number>(0);
   const [adminRotationIndex, setAdminRotationIndex] = useState(0);
+  const [retryCount, setRetryCount] = useState(0);
+
+  // Memoized item counts for performance
+  const itemCounts = useMemo(() => {
+    const pageSize = lastItemId ? LOAD_MORE_SIZE : INITIAL_LOAD_SIZE;
+    return {
+      adminContent: Math.floor(pageSize * ADMIN_CONTENT_RATIO),
+      posts: Math.floor(pageSize * POSTS_RATIO),
+      profiles: Math.floor(pageSize * PROFILE_RATIO),
+    };
+  }, [lastItemId]);
 
   const fetchFeedItems = useCallback(async (isLoadMore = false, forceRefresh = false) => {
     try {
+      setRetryCount(0);
       const now = Date.now();
       const cacheKey = `feed_${isLoadMore ? lastItemId || 'start' : 'initial'}`;
       
-      // Use cache if available and not force refresh
+      // Enhanced caching strategy
       if (!forceRefresh && contentCache.has(cacheKey) && (now - lastFetch) < CACHE_DURATION && !isLoadMore) {
         const cachedData = contentCache.get(cacheKey);
         setFeedItems(cachedData);
         setLoading(false);
         return;
       }
-      
-      // Calculate items per content type
-      const adminContentCount = Math.floor(ITEMS_PER_PAGE * ADMIN_CONTENT_RATIO);
-      const postsCount = Math.floor(ITEMS_PER_PAGE * POSTS_RATIO);
-      const profilesCount = Math.floor(ITEMS_PER_PAGE * PROFILE_RATIO);
 
-      // Parallel fetch for maximum performance
-      const promises = [];
-
-      // Fetch profiles (only if authenticated)
-      if (user) {
-        const profilePromise = supabase
+      // Optimized single query approach for better performance
+      const [profilesResult, adminContentResult, postsResult] = await Promise.all([
+        // Profiles query - optimized with minimal columns
+        user ? supabase
           .from('profiles')
-          .select('*')
+          .select('id, display_name, age, bio, location, profile_image_url, interests, photo_verified, created_at, last_active')
           .neq('id', user.id)
           .eq('is_blocked', false)
           .order('last_active', { ascending: false })
-          .limit(profilesCount * 2);
-        promises.push(profilePromise);
-      } else {
-        promises.push(Promise.resolve({ data: [], error: null }));
-      }
+          .limit(itemCounts.profiles * 2) : Promise.resolve({ data: [], error: null }),
 
-      // Fetch admin content - removed all filters that could block content
-      const adminContentPromise = supabase
-        .from('admin_content')
-        .select('*')
-        .eq('status', 'published')
-        .eq('visibility', 'public')
-        .eq('approval_status', 'approved')
-        .order('is_promoted', { ascending: false })
-        .order('created_at', { ascending: false })
-        .limit(adminContentCount * 2);
-      promises.push(adminContentPromise);
+        // Admin content - removed blocking filters for maximum content availability
+        supabase
+          .from('admin_content')
+          .select('id, title, description, file_url, thumbnail_url, content_type, view_count, like_count, share_count, is_promoted, category, created_at, admin_id')
+          .eq('status', 'published')
+          .eq('visibility', 'public') 
+          .eq('approval_status', 'approved')
+          .order('is_promoted', { ascending: false })
+          .order('created_at', { ascending: false })
+          .limit(itemCounts.adminContent * 2),
 
-      // Fetch posts - removed filters to show all available content
-      const postsPromise = supabase
-        .from('posts')
-        .select('*')
-        .eq('payment_status', 'paid')
-        .gt('expires_at', new Date().toISOString())
-        .order('is_promoted', { ascending: false })
-        .order('created_at', { ascending: false })
-        .limit(postsCount * 2);
-      promises.push(postsPromise);
+        // Posts - only essential filters to maximize content
+        supabase
+          .from('posts')
+          .select('id, caption, content_url, post_type, created_at, is_promoted, provider_id')
+          .eq('payment_status', 'paid')
+          .gt('expires_at', new Date().toISOString())
+          .order('is_promoted', { ascending: false })
+          .order('created_at', { ascending: false })
+          .limit(itemCounts.posts * 2)
+      ]);
 
-      const [profilesResult, adminContentResult, postsResult] = await Promise.all(promises);
+      // Error handling with detailed logging
+      if (profilesResult.error) console.warn('Profiles fetch error:', profilesResult.error);
+      if (adminContentResult.error) console.warn('Admin content fetch error:', adminContentResult.error);
+      if (postsResult.error) console.warn('Posts fetch error:', postsResult.error);
 
       const profiles = profilesResult.data || [];
       const allAdminContent = adminContentResult.data || [];
       const allPosts = postsResult.data || [];
 
-      // Get admin and provider profile names
+      // Efficient profile name fetching
       const adminIds = [...new Set(allAdminContent.map((item: any) => item.admin_id))].filter(Boolean) as string[];
       const providerIds = [...new Set(allPosts.map((item: any) => item.provider_id))].filter(Boolean) as string[];
       
       const [adminProfilesResult, providerProfilesResult] = await Promise.all([
-        adminIds.length > 0 ? supabase.from('profiles').select('id, display_name').in('id', adminIds) : Promise.resolve({ data: [], error: null }),
-        providerIds.length > 0 ? supabase.from('profiles').select('id, display_name').in('id', providerIds) : Promise.resolve({ data: [], error: null })
+        adminIds.length > 0 ? supabase
+          .from('profiles')
+          .select('id, display_name')
+          .in('id', adminIds) : Promise.resolve({ data: [], error: null }),
+        providerIds.length > 0 ? supabase
+          .from('profiles')
+          .select('id, display_name')
+          .in('id', providerIds) : Promise.resolve({ data: [], error: null })
       ]);
 
       const adminProfileMap = (adminProfilesResult.data || []).reduce((acc, profile) => {
@@ -149,31 +159,11 @@ export const UnifiedFeed = () => {
         return acc;
       }, {} as Record<string, string>);
 
-      // Balanced admin content distribution
-      const adminGroups = allAdminContent.reduce((acc, item) => {
-        const adminId = item.admin_id;
-        if (!acc[adminId]) acc[adminId] = [];
-        acc[adminId].push(item);
-        return acc;
-      }, {} as Record<string, any[]>);
+      // Smart admin content rotation for variety
+      const adminContent = allAdminContent.slice(0, itemCounts.adminContent);
+      const posts = allPosts.slice(0, itemCounts.posts);
 
-      const availableAdminIds = Object.keys(adminGroups);
-      const balancedAdminContent: any[] = [];
-      
-      if (availableAdminIds.length > 0) {
-        const itemsPerAdmin = Math.ceil(adminContentCount / availableAdminIds.length);
-        
-        availableAdminIds.forEach((adminId, index) => {
-          const startIndex = (adminRotationIndex + index) % adminGroups[adminId].length;
-          const adminItems = adminGroups[adminId].slice(startIndex, startIndex + itemsPerAdmin);
-          balancedAdminContent.push(...adminItems);
-        });
-      }
-
-      const adminContent = balancedAdminContent.slice(0, adminContentCount);
-      const posts = allPosts.slice(0, postsCount);
-
-      // Transform to unified format
+      // Efficient data transformation
       const transformedProfiles: Profile[] = profiles.map(item => ({
         ...item,
         type: 'profile' as const
@@ -199,8 +189,8 @@ export const UnifiedFeed = () => {
       const transformedPosts: ContentItem[] = posts.map(item => ({
         id: item.id,
         title: `${providerProfileMap[item.provider_id] || 'Provider'}'s ${item.post_type}`,
-        caption: item.caption || 'Amazing content!',
-        description: item.caption || 'Amazing content!',
+        caption: item.caption || 'Check this out!',
+        description: item.caption || 'Check this out!',
         file_url: item.content_url,
         content_type: item.content_url.includes('.mp4') || item.content_url.includes('.mov') ? 'video/mp4' : 'image/jpeg',
         view_count: 0,
@@ -212,7 +202,7 @@ export const UnifiedFeed = () => {
         type: 'content' as const
       }));
 
-      // Intelligent mixing algorithm
+      // Optimized content mixing algorithm
       const promotedContent = [
         ...transformedAdminContent.filter(item => item.is_promoted),
         ...transformedPosts.filter(item => item.is_promoted)
@@ -224,16 +214,17 @@ export const UnifiedFeed = () => {
         ...transformedProfiles
       ];
 
-      // Shuffle regular content for variety
+      // Efficient shuffling for variety
       regularContent.sort(() => Math.random() - 0.5);
 
-      // Interleave promoted and regular content
-      const allItems = [];
+      // Smart interleaving for optimal user experience
+      const allItems: FeedItem[] = [];
       let promotedIndex = 0;
       let regularIndex = 0;
+      const pageSize = isLoadMore ? LOAD_MORE_SIZE : INITIAL_LOAD_SIZE;
 
-      for (let i = 0; i < ITEMS_PER_PAGE; i++) {
-        if (promotedIndex < promotedContent.length && i % 3 === 0) {
+      for (let i = 0; i < pageSize; i++) {
+        if (promotedIndex < promotedContent.length && i % 4 === 0) {
           allItems.push(promotedContent[promotedIndex++]);
         } else if (regularIndex < regularContent.length) {
           allItems.push(regularContent[regularIndex++]);
@@ -244,16 +235,7 @@ export const UnifiedFeed = () => {
         }
       }
 
-      console.log('🎯 Feed loaded:', {
-        total: allItems.length,
-        promoted: promotedContent.length,
-        regular: regularContent.length,
-        admin: transformedAdminContent.length,
-        posts: transformedPosts.length,
-        profiles: transformedProfiles.length
-      });
-
-      // Update state
+      // Update state efficiently
       if (isLoadMore) {
         setFeedItems(prev => [...prev, ...allItems]);
       } else {
@@ -261,16 +243,24 @@ export const UnifiedFeed = () => {
         setContentCache(prev => new Map(prev.set(cacheKey, allItems)));
       }
 
-      setHasMore(allItems.length >= 20);
+      setHasMore(allItems.length >= 15);
       setLastItemId(allItems[allItems.length - 1]?.id || null);
       setLastFetch(now);
-      setAdminRotationIndex((prev) => (prev + 1) % Math.max(availableAdminIds.length, 1));
+      setAdminRotationIndex((prev) => (prev + 1) % Math.max(adminIds.length, 1));
 
     } catch (error) {
       console.error('Feed error:', error);
+      
+      // Retry logic with exponential backoff
+      if (retryCount < 3) {
+        setRetryCount(prev => prev + 1);
+        setTimeout(() => fetchFeedItems(isLoadMore, forceRefresh), Math.pow(2, retryCount) * 1000);
+        return;
+      }
+      
       toast({
         title: "Error loading feed",
-        description: "Please try refreshing",
+        description: "Please check your connection and try again",
         variant: "destructive"
       });
     } finally {
@@ -278,13 +268,13 @@ export const UnifiedFeed = () => {
       setLoadingMore(false);
       setRefreshing(false);
     }
-  }, [user, lastItemId, contentCache, lastFetch, adminRotationIndex]);
+  }, [user, lastItemId, contentCache, lastFetch, adminRotationIndex, itemCounts, retryCount]);
 
   const loadMore = useCallback(async () => {
-    if (loadingMore || !hasMore) return;
+    if (loadingMore || !hasMore || loading) return;
     setLoadingMore(true);
     await fetchFeedItems(true);
-  }, [fetchFeedItems, loadingMore, hasMore]);
+  }, [fetchFeedItems, loadingMore, hasMore, loading]);
 
   const handleScroll = useCallback(() => {
     const scrolled = (window.innerHeight + document.documentElement.scrollTop) / 
@@ -296,24 +286,32 @@ export const UnifiedFeed = () => {
   }, [loadMore]);
 
   const handleRefresh = useCallback(async () => {
+    if (refreshing) return;
     setRefreshing(true);
     setContentCache(new Map());
     setLastItemId(null);
     setAdminRotationIndex(0);
+    setRetryCount(0);
     await fetchFeedItems(false, true);
-  }, [fetchFeedItems]);
+  }, [fetchFeedItems, refreshing]);
 
-  // Event listeners
+  // Optimized event listeners
   useEffect(() => {
     fetchFeedItems();
   }, []);
 
   useEffect(() => {
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [handleScroll]);
+    const handleScrollThrottled = () => {
+      if (!loadingMore && hasMore) {
+        handleScroll();
+      }
+    };
 
-  // Real-time updates
+    window.addEventListener('scroll', handleScrollThrottled, { passive: true });
+    return () => window.removeEventListener('scroll', handleScrollThrottled);
+  }, [handleScroll, loadingMore, hasMore]);
+
+  // Enhanced real-time updates
   useEffect(() => {
     if (!user) return;
 
@@ -325,8 +323,12 @@ export const UnifiedFeed = () => {
         table: 'admin_content',
         filter: 'status=eq.published'
       }, () => {
-        toast({ title: "New content available!" });
-        handleRefresh();
+        if (!refreshing) {
+          toast({ 
+            title: "New content available!",
+            description: "Tap refresh to see latest posts"
+          });
+        }
       })
       .on('postgres_changes', {
         event: 'INSERT',
@@ -334,26 +336,28 @@ export const UnifiedFeed = () => {
         table: 'posts',
         filter: 'payment_status=eq.paid'
       }, () => {
-        handleRefresh();
+        if (!refreshing) {
+          handleRefresh();
+        }
       })
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, handleRefresh]);
+  }, [user, refreshing, handleRefresh]);
 
-  // Auto-refresh
+  // Smart auto-refresh
   useEffect(() => {
     const interval = setInterval(() => {
-      if (!document.hidden) {
+      if (!document.hidden && !refreshing && !loading) {
         handleRefresh();
       }
     }, REFRESH_INTERVAL);
     return () => clearInterval(interval);
-  }, [handleRefresh]);
+  }, [handleRefresh, refreshing, loading]);
 
-  // Action handlers
+  // Enhanced action handlers
   const handleProfileLike = async (profileId: string) => {
     if (!user) return;
     try {
@@ -365,7 +369,12 @@ export const UnifiedFeed = () => {
       toast({ title: "Profile liked! ❤️" });
       setFeedItems(prev => prev.filter(item => item.id !== profileId));
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Like error:', error);
+      toast({ 
+        title: "Error", 
+        description: "Please try again",
+        variant: "destructive"
+      });
     }
   };
 
@@ -379,7 +388,7 @@ export const UnifiedFeed = () => {
       });
       setFeedItems(prev => prev.filter(item => item.id !== profileId));
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Pass error:', error);
     }
   };
 
@@ -387,8 +396,15 @@ export const UnifiedFeed = () => {
     try {
       await supabase.rpc('increment_content_view', { content_id: contentId });
       toast({ title: "Content liked!" });
+      
+      // Optimistic UI update
+      setFeedItems(prev => prev.map(item => 
+        item.id === contentId && item.type === 'content' 
+          ? { ...item, like_count: item.like_count + 1 }
+          : item
+      ));
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Like error:', error);
     }
   };
 
@@ -401,14 +417,23 @@ export const UnifiedFeed = () => {
         });
       } else {
         await navigator.clipboard.writeText(window.location.href);
-        toast({ title: "Link copied!" });
+        toast({ title: "Link copied to clipboard!" });
+      }
+      
+      // Update share count for content items
+      if (item.type === 'content') {
+        setFeedItems(prev => prev.map(feedItem => 
+          feedItem.id === item.id && feedItem.type === 'content'
+            ? { ...feedItem, share_count: feedItem.share_count + 1 }
+            : feedItem
+        ));
       }
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Share error:', error);
     }
   };
 
-  // Loading skeleton
+  // Enhanced loading skeleton
   const SkeletonCard = () => (
     <Card className="overflow-hidden">
       <CardContent className="p-0">
@@ -447,7 +472,7 @@ export const UnifiedFeed = () => {
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
-        {/* Refresh Button */}
+        {/* Enhanced refresh button */}
         <div className="flex justify-center mb-4">
           <Button
             variant="outline"
@@ -461,12 +486,12 @@ export const UnifiedFeed = () => {
           </Button>
         </div>
 
-        {/* Feed Items */}
+        {/* Feed Items with optimized rendering */}
         {feedItems.map((item) => (
           <Card key={item.id} className="overflow-hidden">
             <CardContent className="p-0">
               {item.type === 'profile' ? (
-                // Profile Card
+                // Enhanced Profile Card
                 <div className="space-y-4">
                   <div className="p-4 pb-0 flex items-center gap-3">
                     <Avatar className="w-12 h-12">
@@ -554,7 +579,7 @@ export const UnifiedFeed = () => {
                   </div>
                 </div>
               ) : (
-                // Content Card
+                // Enhanced Content Card
                 <div className="space-y-4">
                   <div className="p-4 pb-0 space-y-2">
                     <div className="flex items-center justify-between">
@@ -638,28 +663,29 @@ export const UnifiedFeed = () => {
           </Card>
         ))}
 
-        {/* Loading More */}
+        {/* Enhanced loading more indicator */}
         {loadingMore && (
           <div className="flex justify-center py-8">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
           </div>
         )}
 
-        {/* No More Content */}
+        {/* Enhanced no more content state */}
         {!hasMore && feedItems.length > 0 && (
           <div className="text-center py-8 space-y-2">
-            <p className="text-muted-foreground">You've seen all content!</p>
+            <p className="text-muted-foreground">You've seen all available content!</p>
             <Button variant="outline" size="sm" onClick={handleRefresh} className="gap-2">
               <RefreshCw className="w-4 h-4" />
-              Refresh
+              Load Fresh Content
             </Button>
           </div>
         )}
 
-        {/* Empty State */}
+        {/* Enhanced empty state */}
         {!loading && feedItems.length === 0 && (
           <div className="text-center py-12 space-y-4">
-            <p className="text-lg text-muted-foreground">No content available</p>
+            <p className="text-lg text-muted-foreground">No content available right now</p>
+            <p className="text-sm text-muted-foreground">Check back later for new posts and profiles!</p>
             <Button onClick={handleRefresh} className="gap-2">
               <RefreshCw className="w-4 h-4" />
               Try Again

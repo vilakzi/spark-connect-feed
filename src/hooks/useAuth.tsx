@@ -43,7 +43,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         if (session?.user && event === 'SIGNED_IN') {
           setTimeout(async () => {
             try {
-              await supabase.rpc('ensure_user_profile', { user_id: session.user.id });
+              await supabase.rpc('ensure_user_profile', { profile_user_id: session.user.id });
             } catch (error) {
               console.warn('Failed to ensure user profile:', error);
             }
@@ -62,7 +62,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       // Ensure profile exists for existing session
       if (session?.user) {
         try {
-          await supabase.rpc('ensure_user_profile', { user_id: session.user.id });
+          await supabase.rpc('ensure_user_profile', { profile_user_id: session.user.id });
         } catch (error) {
           console.warn('Failed to ensure user profile:', error);
         }

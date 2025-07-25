@@ -1082,7 +1082,7 @@ export type Database = {
         Returns: string
       }
       ensure_user_profile: {
-        Args: { user_id: string }
+        Args: { profile_user_id: string }
         Returns: undefined
       }
       generate_content_hash: {
