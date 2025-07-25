@@ -4,7 +4,7 @@ import { usePresence } from '@/hooks/usePresence';
 import { useActivityTracker } from '@/hooks/useActivityTracker';
 import { useChat } from '@/hooks/useChat';
 import { Button } from '@/components/ui/button';
-import { InstagramFeed } from '@/components/feed/InstagramFeed';
+import { ContentFeed } from '@/components/feed/ContentFeed';
 import { SwipeInterface } from '@/components/swipe/SwipeInterface';
 import { MatchesList } from '@/components/matches/MatchesList';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
@@ -56,7 +56,7 @@ const Index = () => {
       case 'swipe':
         return <SwipeInterface />;
       case 'feed':
-        return <InstagramFeed />;
+        return <ContentFeed />;
       case 'matches':
         return <MatchesList onStartChat={handleStartChat} />;
       case 'chat':
