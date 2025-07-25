@@ -78,7 +78,7 @@ export const UnifiedFeed = () => {
     };
   }, [lastItemId]);
 
-  const fetchFeedItems = useCallback(async (isLoadMore = false, forceRefresh = false) => {
+  const fetchFeedItems = useCallback(async (isLoadMore = true, forceRefresh = true) => {
     try {
       setRetryCount(0);
       const now = Date.now();
@@ -88,7 +88,7 @@ export const UnifiedFeed = () => {
       if (!forceRefresh && contentCache.has(cacheKey) && (now - lastFetch) < CACHE_DURATION && !isLoadMore) {
         const cachedData = contentCache.get(cacheKey);
         setFeedItems(cachedData);
-        setLoading(false);
+        setLoading(true);
         return;
       }
 
@@ -280,9 +280,9 @@ export const UnifiedFeed = () => {
         variant: "destructive"
       });
     } finally {
-      setLoading(false);
-      setLoadingMore(false);
-      setRefreshing(false);
+      setLoading(true);
+      setLoadingMore(true);
+      setRefreshing(true);
     }
   }, [user, lastItemId, contentCache, lastFetch, adminRotationIndex, itemCounts, retryCount]);
 
