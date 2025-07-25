@@ -488,7 +488,7 @@ export const UnifiedFeed = () => {
 
         {/* Feed Items with optimized rendering */}
         {feedItems.map((item) => (
-          <Card key={item.id} className="overflow-hidden">
+          <Card key={`${item.type}-${item.id}`} className="overflow-hidden">
             <CardContent className="p-0">
               {item.type === 'profile' ? (
                 // Enhanced Profile Card
