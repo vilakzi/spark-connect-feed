@@ -88,7 +88,7 @@ export const UnifiedFeed = () => {
         profiles = profilesData || [];
       }
 
-      // Fetch admin content with promoted content first
+      // Fetch admin content
       const { data: promotedContent } = await supabase
         .from('admin_content')
         .select('*')
@@ -112,7 +112,19 @@ export const UnifiedFeed = () => {
 
       const adminContent = [...(promotedContent || []), ...(regularContent || [])].slice(0, adminContentCount);
 
-      // Fetch posts with promoted posts first
+      // Fetch admin profiles for content attribution
+      const adminIds = [...new Set(adminContent.map(item => item.admin_id))];
+      const { data: adminProfiles } = await supabase
+        .from('profiles')
+        .select('id, display_name')
+        .in('id', adminIds);
+
+      const adminProfileMap = adminProfiles?.reduce((acc, profile) => {
+        acc[profile.id] = profile.display_name;
+        return acc;
+      }, {} as Record<string, string>) || {};
+
+      // Fetch posts
       const { data: promotedPosts } = await supabase
         .from('posts')
         .select('*')
@@ -133,6 +145,18 @@ export const UnifiedFeed = () => {
 
       const posts = [...(promotedPosts || []), ...(regularPosts || [])].slice(0, postsCount);
 
+      // Fetch provider profiles for posts attribution
+      const providerIds = [...new Set(posts.map(item => item.provider_id))];
+      const { data: providerProfiles } = await supabase
+        .from('profiles')
+        .select('id, display_name')
+        .in('id', providerIds);
+
+      const providerProfileMap = providerProfiles?.reduce((acc, profile) => {
+        acc[profile.id] = profile.display_name;
+        return acc;
+      }, {} as Record<string, string>) || {};
+
       // Transform data to unified format
       const transformedProfiles: Profile[] = (profiles || []).map(item => ({
         ...item,
@@ -141,8 +165,8 @@ export const UnifiedFeed = () => {
 
       const transformedAdminContent: ContentItem[] = (adminContent || []).map(item => ({
         id: item.id,
-        title: item.title,
-        description: item.description,
+        title: item.title || 'Untitled Content',
+        description: item.description || '',
         file_url: item.file_url,
         thumbnail_url: item.thumbnail_url,
         content_type: item.content_type,
@@ -152,21 +176,23 @@ export const UnifiedFeed = () => {
         is_promoted: item.is_promoted || false,
         category: item.category,
         created_at: item.created_at,
-        admin_name: 'Admin',
+        admin_name: adminProfileMap[item.admin_id] || 'Admin',
         type: 'content' as const
       }));
 
       const transformedPosts: ContentItem[] = (posts || []).map(item => ({
         id: item.id,
-        title: `${item.post_type} Post`,
-        caption: item.caption,
+        title: providerProfileMap[item.provider_id] ? `${providerProfileMap[item.provider_id]}'s ${item.post_type}` : `${item.post_type} Post`,
+        caption: item.caption || 'Check out this amazing content!',
+        description: item.caption || 'Check out this amazing content!',
         file_url: item.content_url,
-        content_type: 'image/jpeg',
+        content_type: item.content_url.includes('.mp4') || item.content_url.includes('.mov') ? 'video/mp4' : 'image/jpeg',
         view_count: 0,
         like_count: 0,
         share_count: 0,
         is_promoted: item.is_promoted || false,
         created_at: item.created_at,
+        admin_name: providerProfileMap[item.provider_id] || 'Provider',
         type: 'content' as const
       }));
 
