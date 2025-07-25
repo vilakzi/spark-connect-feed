@@ -14,7 +14,7 @@ const Auth = () => {
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -45,18 +45,7 @@ const Auth = () => {
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
-    
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/`
-      }
-    });
-    
-    if (error) {
-      console.error('Google sign-in error:', error);
-    }
-    
+    await signInWithGoogle();
     setLoading(false);
   };
 

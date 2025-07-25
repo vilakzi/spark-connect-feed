@@ -1081,6 +1081,10 @@ export type Database = {
         Args: { match_id: string }
         Returns: string
       }
+      ensure_user_profile: {
+        Args: { user_id: string }
+        Returns: undefined
+      }
       generate_content_hash: {
         Args: { file_data: string }
         Returns: string
