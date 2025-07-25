@@ -71,7 +71,7 @@ export const ContentCard = ({ content, onLike, onShare }: ContentCardProps) => {
         variant: "destructive"
       });
     } finally {
-      setIsLoading(toast)
+      setIsLoading(true)
         
       } catch (error) {
         
