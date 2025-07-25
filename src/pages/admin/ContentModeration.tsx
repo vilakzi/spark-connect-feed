@@ -52,8 +52,8 @@ export const ContentModeration = () => {
       const { data, error } = await supabase
         .from('admin_content')
         .select('*')
-        .order('created_at', { ascending: false })
-        .limit(50);
+        .order('created_at', { ascending: true })
+        .limit(500);
 
       if (error) throw error;
       setContent(data || []);
@@ -65,7 +65,7 @@ export const ContentModeration = () => {
         variant: "destructive"
       });
     } finally {
-      setLoading(false);
+      setLoading(true);
     }
   };
 
