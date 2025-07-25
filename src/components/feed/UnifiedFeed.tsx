@@ -69,12 +69,15 @@ export const UnifiedFeed = () => {
 
   const fetchFeedItems = useCallback(async (isLoadMore = false, forceRefresh = false) => {
     try {
+      console.log('🔍 Starting fetchFeedItems...', { user: user?.id, isLoadMore, forceRefresh });
+      
       // Check cache first (unless force refresh)
       const now = Date.now();
       const cacheKey = `feed_${isLoadMore ? lastItemId || 'start' : 'initial'}`;
       
       if (!forceRefresh && contentCache.has(cacheKey) && (now - lastFetch) < CACHE_DURATION && !isLoadMore) {
         const cachedData = contentCache.get(cacheKey);
+        console.log('📦 Using cached data:', cachedData.length, 'items');
         setFeedItems(cachedData);
         setLoading(false);
         return;
@@ -84,18 +87,28 @@ export const UnifiedFeed = () => {
       const profilesCount = Math.floor(ITEMS_PER_PAGE * PROFILE_RATIO);
       const adminContentCount = Math.floor(ITEMS_PER_PAGE * ADMIN_CONTENT_RATIO);
       const postsCount = Math.floor(ITEMS_PER_PAGE * POSTS_RATIO);
+      
+      console.log('📊 Content distribution:', { profilesCount, adminContentCount, postsCount });
 
       // Fetch profiles (only if user is authenticated)
       let profiles = [];
+      console.log('👤 User authentication status:', { 
+        authenticated: !!user, 
+        userId: user?.id,
+        email: user?.email 
+      });
+      
       if (user) {
-        const { data: swipedProfiles } = await supabase
+        const { data: swipedProfiles, error: swipesError } = await supabase
           .from('swipes')
           .select('target_user_id')
           .eq('user_id', user.id);
 
+        console.log('👆 Swipes query:', { count: swipedProfiles?.length, error: swipesError });
+
         const swipedIds = swipedProfiles?.map(s => s.target_user_id) || [];
 
-        const { data: profilesData } = await supabase
+        const { data: profilesData, error: profilesError } = await supabase
           .from('profiles')
           .select('*')
           .neq('id', user.id)
@@ -105,11 +118,37 @@ export const UnifiedFeed = () => {
           .order('last_active', { ascending: false })
           .limit(profilesCount * 2);
         
+        console.log('👥 Profiles query:', { count: profilesData?.length, error: profilesError });
         profiles = profilesData || [];
       }
 
-      // Optimized admin content fetching with better distribution
-      const { data: allAdminContent } = await supabase
+      // First, let's check if we have any admin content at all (without authentication)
+      const { data: publicAdminContentCheck, error: publicAdminError } = await supabase
+        .from('admin_content')
+        .select('id, title, status, visibility, approval_status, admin_id');
+
+      console.log('🌐 Public admin content check (no filters):', {
+        count: publicAdminContentCheck?.length,
+        error: publicAdminError,
+        sample: publicAdminContentCheck?.slice(0, 3)
+      });
+
+      // Check with basic filters
+      const { data: adminContentCheck, error: adminError } = await supabase
+        .from('admin_content')
+        .select('id, title, status, visibility, approval_status, admin_id')
+        .eq('status', 'published')
+        .eq('visibility', 'public')
+        .eq('approval_status', 'approved');
+
+      console.log('📝 Admin content check (with filters):', {
+        count: adminContentCheck?.length,
+        error: adminError,
+        sample: adminContentCheck?.slice(0, 3)
+      });
+
+      // Try fetching WITHOUT the seen content filter first
+      const { data: allAdminContent, error: adminFetchError } = await supabase
         .from('admin_content')
         .select(`
           *,
@@ -118,10 +157,16 @@ export const UnifiedFeed = () => {
         .eq('status', 'published')
         .eq('visibility', 'public')
         .eq('approval_status', 'approved')
-        .not('id', 'in', `(${Array.from(seenContent).join(',') || 'null'})`)
         .order('is_promoted', { ascending: false })
         .order('created_at', { ascending: false })
         .limit(adminContentCount * 2); // Fetch more to ensure variety
+
+      console.log('📝 Admin content fetched (no seen filter):', {
+        count: allAdminContent?.length,
+        error: adminFetchError,
+        seenContentSize: seenContent.size,
+        firstItem: allAdminContent?.[0]
+      });
 
       // Ensure balanced distribution across all admin accounts
       const adminGroups = (allAdminContent || []).reduce((acc, item) => {
@@ -143,6 +188,11 @@ export const UnifiedFeed = () => {
       });
 
       const adminContent = balancedAdminContent.slice(0, adminContentCount);
+      console.log('⚖️ Balanced admin content:', {
+        totalGroups: adminIds.length,
+        finalCount: adminContent.length,
+        adminIds: adminIds
+      });
 
       // Extract admin profile data (already included in the query)
       const adminProfileMap = adminContent.reduce((acc, item) => {
@@ -152,8 +202,32 @@ export const UnifiedFeed = () => {
         return acc;
       }, {} as Record<string, string>);
 
-      // Optimized posts fetching with provider info
-      const { data: allPosts } = await supabase
+      // Check posts without filters first
+      const { data: publicPostsCheck, error: publicPostsError } = await supabase
+        .from('posts')
+        .select('id, post_type, payment_status, expires_at, provider_id');
+
+      console.log('🌐 Public posts check (no filters):', {
+        count: publicPostsCheck?.length,
+        error: publicPostsError,
+        sample: publicPostsCheck?.slice(0, 3)
+      });
+
+      // Check posts with basic filters
+      const { data: postsCheck, error: postsError } = await supabase
+        .from('posts')
+        .select('id, post_type, payment_status, expires_at, provider_id')
+        .eq('payment_status', 'paid')
+        .gt('expires_at', new Date().toISOString());
+
+      console.log('📮 Posts check (with filters):', {
+        count: postsCheck?.length,
+        error: postsError,
+        sample: postsCheck?.slice(0, 3)
+      });
+
+      // Optimized posts fetching with provider info (no seen filter)
+      const { data: allPosts, error: postsFetchError } = await supabase
         .from('posts')
         .select(`
           *,
@@ -161,10 +235,15 @@ export const UnifiedFeed = () => {
         `)
         .eq('payment_status', 'paid')
         .gt('expires_at', new Date().toISOString())
-        .not('id', 'in', `(${Array.from(seenContent).join(',') || 'null'})`)
         .order('is_promoted', { ascending: false })
         .order('created_at', { ascending: false })
         .limit(postsCount * 2); // Fetch more for variety
+
+      console.log('📮 Posts fetched (no seen filter):', {
+        count: allPosts?.length,
+        error: postsFetchError,
+        firstItem: allPosts?.[0]
+      });
 
       const posts = (allPosts || []).slice(0, postsCount);
 
@@ -274,6 +353,15 @@ export const UnifiedFeed = () => {
       }
       
       allItems.push(...promotedContent, ...mixedRegularContent);
+      
+      console.log('🎯 Final feed composition:', {
+        totalItems: allItems.length,
+        promotedCount: promotedContent.length,
+        regularCount: mixedRegularContent.length,
+        adminContentItems: transformedAdminContent.length,
+        postsItems: transformedPosts.length,
+        profilesItems: transformedProfiles.length
+      });
 
       // Update seen content tracking
       const newSeenIds = new Set([...seenContent, ...allItems.map(item => item.id)]);
