@@ -57,76 +57,52 @@ export const SupabaseFeed = () => {
     try {
       setLoading(true);
 
-      // Get admin content from both admin_content and posts tables
-      const [adminContentResult, postsResult] = await Promise.all([
-        // Fetch ALL admin content
-        supabase
-          .from('admin_content')
-          .select(`
-            id, title, description, file_url, thumbnail_url, content_type, 
-            view_count, like_count, share_count, is_promoted, category, 
-            created_at, admin_id,
-            profiles!admin_id(display_name, role)
-          `)
-          .not('file_url', 'is', null)
-          .order('created_at', { ascending: false })
-          .limit(500),
+      // Single optimized query to get all content
+      const { data: allContent, error } = await supabase
+        .from('admin_content')
+        .select(`
+          id, title, description, file_url, thumbnail_url, content_type, 
+          view_count, like_count, share_count, is_promoted, category, 
+          created_at, admin_id,
+          profiles!admin_id(display_name, role)
+        `)
+        .not('file_url', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(100);
 
-        // Fetch ALL posts from posts table
-        supabase
-          .from('posts')
-          .select(`
-            id, caption, content_url, post_type, promotion_type, 
-            created_at, provider_id, payment_status, expires_at,
-            profiles!provider_id(display_name, role)
-          `)
-          .not('content_url', 'is', null)
-          .order('created_at', { ascending: false })
-          .limit(500)
-      ]);
+      if (error) {
+        console.error('Supabase query error:', error);
+        throw error;
+      }
 
-      const adminContent = adminContentResult.data || [];
-      const posts = postsResult.data || [];
+      const adminContent = allContent || [];
 
-      console.log('Supabase feed results:', { 
-        adminContent: adminContent.length, 
-        posts: posts.length,
-        adminContentData: adminContent.slice(0, 2),
-        postsData: posts.slice(0, 2)
+      console.log('Feed loaded:', { 
+        total: adminContent.length,
+        sample: adminContent.slice(0, 3).map(item => ({
+          id: item.id,
+          title: item.title,
+          hasFile: !!item.file_url,
+          contentType: item.content_type
+        }))
       });
 
-      // Transform data into feed items
-      const feedItems: FeedItem[] = [];
-
-      // Add admin content from admin_content table
-      adminContent
-        .filter(item => {
-          if (!item.file_url) return false;
-          if (item.file_url.includes('blob:')) return false;
-          return true;
-        })
-        .forEach(item => {
-          let contentType = item.content_type || 'image/jpeg';
-          const url = item.file_url.toLowerCase();
-          
-          if (url.includes('.mp4') || url.includes('.mov') || url.includes('.avi') || url.includes('.webm') || url.includes('video')) {
-            contentType = 'video/mp4';
-          } else if (url.includes('.jpg') || url.includes('.jpeg') || url.includes('.png') || url.includes('.gif') || url.includes('.webp') || url.includes('image')) {
-            contentType = 'image/jpeg';
-          }
-
+      // Transform admin content into feed items efficiently
+      const feedItems: FeedItem[] = adminContent
+        .filter(item => item.file_url && !item.file_url.includes('blob:'))
+        .map(item => {
           const adminProfile = Array.isArray(item.profiles) ? item.profiles[0] : item.profiles;
           
-          feedItems.push({
+          return {
             id: `admin-content-${item.id}`,
-            type: 'content',
+            type: 'content' as const,
             data: {
               id: item.id,
               title: item.title || 'Admin Content',
-              description: item.description || 'Exclusive content from admin',
+              description: item.description || 'Exclusive admin content',
               file_url: item.file_url,
               thumbnail_url: item.thumbnail_url,
-              content_type: contentType,
+              content_type: item.content_type || 'image/jpeg',
               view_count: item.view_count || 0,
               like_count: item.like_count || 0,
               share_count: item.share_count || 0,
@@ -135,65 +111,15 @@ export const SupabaseFeed = () => {
               created_at: item.created_at,
               admin_name: adminProfile?.display_name || 'Admin Creator'
             }
-          });
+          };
         });
 
-      // Add posts from posts table
-      posts
-        .filter(post => {
-          if (!post.content_url) return false;
-          if (post.content_url.includes('blob:')) return false;
-          return true;
-        })
-        .forEach(post => {
-          let contentType = 'image/jpeg';
-          if (post.post_type === 'video') {
-            contentType = 'video/mp4';
-          }
-
-          const providerProfile = Array.isArray(post.profiles) ? post.profiles[0] : post.profiles;
-          
-          feedItems.push({
-            id: `post-${post.id}`,
-            type: 'content',
-            data: {
-              id: post.id,
-              title: post.caption || 'Post Content',
-              description: `${post.promotion_type} promotion`,
-              file_url: post.content_url,
-              content_type: contentType,
-              view_count: 0,
-              like_count: 0,
-              share_count: 0,
-              is_promoted: post.promotion_type !== 'free_2h',
-              category: post.post_type || 'general',
-              created_at: post.created_at,
-              admin_name: providerProfile?.display_name || 'Creator'
-            }
-          });
-        });
-
-      // Sort all content by creation date, prioritizing promoted content
-      const sortedItems = feedItems.sort((a, b) => {
-        const aData = a.data as ContentItem;
-        const bData = b.data as ContentItem;
-        
-        // Prioritize promoted content
-        if (aData.is_promoted && !bData.is_promoted) return -1;
-        if (!aData.is_promoted && bData.is_promoted) return 1;
-        
-        // Then sort by creation date (newest first)
-        return new Date(bData.created_at).getTime() - new Date(aData.created_at).getTime();
+      console.log('Feed ready:', {
+        totalItems: feedItems.length,
+        promoted: feedItems.filter(item => (item.data as ContentItem).is_promoted).length
       });
 
-      console.log('Feed composition:', {
-        total: sortedItems.length,
-        adminContent: adminContent.length,
-        posts: posts.length,
-        promoted: sortedItems.filter(item => (item.data as ContentItem).is_promoted).length
-      });
-
-      setFeedItems(sortedItems);
+      setFeedItems(feedItems);
 
     } catch (error) {
       console.error('Error fetching Supabase feed:', error);
