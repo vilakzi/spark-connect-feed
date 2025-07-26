@@ -59,7 +59,7 @@ export const SupabaseFeed = () => {
 
       // Get admin content from both admin_content and posts tables
       const [adminContentResult, postsResult] = await Promise.all([
-        // Fetch all admin content
+        // Fetch ALL admin content
         supabase
           .from('admin_content')
           .select(`
@@ -70,21 +70,19 @@ export const SupabaseFeed = () => {
           `)
           .not('file_url', 'is', null)
           .order('created_at', { ascending: false })
-          .limit(200),
+          .limit(500),
 
-        // Fetch posts from service providers with admin roles
+        // Fetch ALL posts from posts table
         supabase
           .from('posts')
           .select(`
             id, caption, content_url, post_type, promotion_type, 
-            created_at, provider_id, payment_status,
+            created_at, provider_id, payment_status, expires_at,
             profiles!provider_id(display_name, role)
           `)
-          .eq('payment_status', 'paid')
-          .gt('expires_at', new Date().toISOString())
           .not('content_url', 'is', null)
           .order('created_at', { ascending: false })
-          .limit(200)
+          .limit(500)
       ]);
 
       const adminContent = adminContentResult.data || [];
@@ -92,7 +90,9 @@ export const SupabaseFeed = () => {
 
       console.log('Supabase feed results:', { 
         adminContent: adminContent.length, 
-        posts: posts.length 
+        posts: posts.length,
+        adminContentData: adminContent.slice(0, 2),
+        postsData: posts.slice(0, 2)
       });
 
       // Transform data into feed items
