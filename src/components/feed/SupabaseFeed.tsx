@@ -57,93 +57,62 @@ export const SupabaseFeed = () => {
     try {
       setLoading(true);
 
-      // Get admin profiles and their content with proper Supabase queries
-      const [adminProfilesResult, adminContentResult] = await Promise.all([
-        // Fetch admin profiles
-        supabase
-          .from('profiles')
-          .select('id, display_name, age, bio, location, profile_image_url, profile_images, interests, photo_verified, created_at, last_active')
-          .eq('role', 'admin')
-          .eq('is_blocked', false)
-          .not('profile_image_url', 'is', null)
-          .order('last_active', { ascending: false })
-          .limit(50),
-
-        // Fetch admin content
+      // Get admin content from both admin_content and posts tables
+      const [adminContentResult, postsResult] = await Promise.all([
+        // Fetch all admin content
         supabase
           .from('admin_content')
           .select(`
             id, title, description, file_url, thumbnail_url, content_type, 
             view_count, like_count, share_count, is_promoted, category, 
             created_at, admin_id,
-            profiles!admin_id(display_name, age, bio, location, profile_image_url, interests, photo_verified)
+            profiles!admin_id(display_name, role)
           `)
-          .eq('status', 'published')
-          .eq('approval_status', 'approved')
-          .like('file_url', 'https://%')
-          .order('is_promoted', { ascending: false })
+          .not('file_url', 'is', null)
           .order('created_at', { ascending: false })
-          .limit(100)
+          .limit(200),
+
+        // Fetch posts from service providers with admin roles
+        supabase
+          .from('posts')
+          .select(`
+            id, caption, content_url, post_type, promotion_type, 
+            created_at, provider_id, payment_status,
+            profiles!provider_id(display_name, role)
+          `)
+          .eq('payment_status', 'paid')
+          .gt('expires_at', new Date().toISOString())
+          .not('content_url', 'is', null)
+          .order('created_at', { ascending: false })
+          .limit(200)
       ]);
 
-      const adminProfiles = adminProfilesResult.data || [];
       const adminContent = adminContentResult.data || [];
+      const posts = postsResult.data || [];
 
       console.log('Supabase feed results:', { 
-        adminProfiles: adminProfiles.length, 
-        adminContent: adminContent.length 
+        adminContent: adminContent.length, 
+        posts: posts.length 
       });
 
       // Transform data into feed items
       const feedItems: FeedItem[] = [];
 
-      // Add admin profiles as content cards
-      adminProfiles
-        .filter(profile => {
-          const hasValidImage = profile.profile_image_url || 
-                               (profile.profile_images && profile.profile_images.length > 0);
-          return hasValidImage;
-        })
-        .forEach(profile => {
-          feedItems.push({
-            id: `admin-profile-${profile.id}`,
-            type: 'content',
-            data: {
-              id: profile.id,
-              title: profile.display_name || 'Admin Creator',
-              description: profile.bio || 'Amazing content creator',
-              file_url: profile.profile_image_url || profile.profile_images?.[0] || '',
-              content_type: 'image/jpeg',
-              view_count: 0,
-              like_count: 0,
-              share_count: 0,
-              is_promoted: true,
-              category: 'profile',
-              created_at: profile.created_at || new Date().toISOString(),
-              admin_name: profile.display_name || 'Admin Creator'
-            }
-          });
-        });
-
-      // Add admin content
+      // Add admin content from admin_content table
       adminContent
         .filter(item => {
           if (!item.file_url) return false;
           if (item.file_url.includes('blob:')) return false;
-          if (!item.file_url.startsWith('https://')) return false;
           return true;
         })
         .forEach(item => {
-          let contentType = item.content_type;
-          if (!contentType || contentType === 'application/octet-stream') {
-            const url = item.file_url.toLowerCase();
-            if (url.includes('.mp4') || url.includes('.mov') || url.includes('.avi') || url.includes('.webm') || url.includes('/video/')) {
-              contentType = 'video/mp4';
-            } else if (url.includes('.jpg') || url.includes('.jpeg') || url.includes('.png') || url.includes('.gif') || url.includes('.webp') || url.includes('/image/')) {
-              contentType = 'image/jpeg';
-            } else {
-              contentType = 'image/jpeg';
-            }
+          let contentType = item.content_type || 'image/jpeg';
+          const url = item.file_url.toLowerCase();
+          
+          if (url.includes('.mp4') || url.includes('.mov') || url.includes('.avi') || url.includes('.webm') || url.includes('video')) {
+            contentType = 'video/mp4';
+          } else if (url.includes('.jpg') || url.includes('.jpeg') || url.includes('.png') || url.includes('.gif') || url.includes('.webp') || url.includes('image')) {
+            contentType = 'image/jpeg';
           }
 
           const adminProfile = Array.isArray(item.profiles) ? item.profiles[0] : item.profiles;
@@ -152,65 +121,79 @@ export const SupabaseFeed = () => {
             id: `admin-content-${item.id}`,
             type: 'content',
             data: {
-              ...item,
+              id: item.id,
+              title: item.title || 'Admin Content',
+              description: item.description || 'Exclusive content from admin',
+              file_url: item.file_url,
+              thumbnail_url: item.thumbnail_url,
               content_type: contentType,
-              admin_name: adminProfile?.display_name || 'Content Creator',
-              title: item.title || 'Exclusive Content',
-              description: item.description || 'Amazing content just for you!'
+              view_count: item.view_count || 0,
+              like_count: item.like_count || 0,
+              share_count: item.share_count || 0,
+              is_promoted: item.is_promoted || false,
+              category: item.category || 'general',
+              created_at: item.created_at,
+              admin_name: adminProfile?.display_name || 'Admin Creator'
             }
           });
         });
 
-      // Smart rotation logic - prioritize labsfrica@gmail.com content
-      const allAdminItems = feedItems.filter(item => item.type === 'content');
-      
-      const contentByAdmin: { [key: string]: FeedItem[] } = {};
-      allAdminItems.forEach(item => {
-        const adminName = (item.data as ContentItem).admin_name || 'Unknown';
-        if (!contentByAdmin[adminName]) {
-          contentByAdmin[adminName] = [];
-        }
-        contentByAdmin[adminName].push(item);
-      });
-
-      const rotatedItems: FeedItem[] = [];
-      const adminNames = Object.keys(contentByAdmin);
-      
-      const labsContent = contentByAdmin['labsfrica@gmail.com'] || [];
-      const otherAdmins = adminNames.filter(name => name !== 'labsfrica@gmail.com');
-      
-      let adminIndex = 0;
-      let labsIndex = 0;
-      const maxRotations = Math.max(allAdminItems.length, 50);
-
-      for (let i = 0; i < maxRotations; i++) {
-        // Prioritize labsfrica content
-        if (labsContent.length > 0 && labsIndex < labsContent.length) {
-          rotatedItems.push(labsContent[labsIndex]);
-          labsIndex++;
-        }
-        
-        // Add other admin content
-        if (otherAdmins.length > 0) {
-          const currentAdmin = otherAdmins[adminIndex % otherAdmins.length];
-          const adminContent = contentByAdmin[currentAdmin];
-          if (adminContent && adminContent.length > 0) {
-            const contentItem = adminContent.shift();
-            if (contentItem) {
-              rotatedItems.push(contentItem);
-            }
+      // Add posts from posts table
+      posts
+        .filter(post => {
+          if (!post.content_url) return false;
+          if (post.content_url.includes('blob:')) return false;
+          return true;
+        })
+        .forEach(post => {
+          let contentType = 'image/jpeg';
+          if (post.post_type === 'video') {
+            contentType = 'video/mp4';
           }
-          adminIndex++;
-        }
-      }
+
+          const providerProfile = Array.isArray(post.profiles) ? post.profiles[0] : post.profiles;
+          
+          feedItems.push({
+            id: `post-${post.id}`,
+            type: 'content',
+            data: {
+              id: post.id,
+              title: post.caption || 'Post Content',
+              description: `${post.promotion_type} promotion`,
+              file_url: post.content_url,
+              content_type: contentType,
+              view_count: 0,
+              like_count: 0,
+              share_count: 0,
+              is_promoted: post.promotion_type !== 'free_2h',
+              category: post.post_type || 'general',
+              created_at: post.created_at,
+              admin_name: providerProfile?.display_name || 'Creator'
+            }
+          });
+        });
+
+      // Sort all content by creation date, prioritizing promoted content
+      const sortedItems = feedItems.sort((a, b) => {
+        const aData = a.data as ContentItem;
+        const bData = b.data as ContentItem;
+        
+        // Prioritize promoted content
+        if (aData.is_promoted && !bData.is_promoted) return -1;
+        if (!aData.is_promoted && bData.is_promoted) return 1;
+        
+        // Then sort by creation date (newest first)
+        return new Date(bData.created_at).getTime() - new Date(aData.created_at).getTime();
+      });
 
       console.log('Feed composition:', {
-        total: rotatedItems.length,
-        labsContent: labsContent.length,
-        otherAdmins: otherAdmins.length
+        total: sortedItems.length,
+        adminContent: adminContent.length,
+        posts: posts.length,
+        promoted: sortedItems.filter(item => (item.data as ContentItem).is_promoted).length
       });
 
-      setFeedItems(rotatedItems);
+      setFeedItems(sortedItems);
 
     } catch (error) {
       console.error('Error fetching Supabase feed:', error);
