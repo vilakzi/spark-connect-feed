@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Heart, X, MessageCircle, Share, Eye, RefreshCw } from 'lucide-react';
@@ -313,13 +313,45 @@ export const SupabaseFeed = () => {
   );
 };
 
-// Content Card Component  
+// Content Card Component with Auto-play and Optimal Loading
 const ContentCard = ({ content, onLike, onShare }: {
   content: ContentItem;
   onLike: () => void;
   onShare: () => void;
 }) => {
   const isVideo = content.content_type.startsWith('video/');
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isInView, setIsInView] = useState(false);
+
+  useEffect(() => {
+    if (!isVideo || !videoRef.current) return;
+
+    const video = videoRef.current;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        setIsInView(entry.isIntersecting);
+        
+        if (entry.isIntersecting) {
+          // Video is in viewport - play it
+          video.play().catch(console.error);
+        } else {
+          // Video is out of viewport - pause it
+          video.pause();
+        }
+      },
+      {
+        threshold: 0.6, // Play when 60% of video is visible
+        rootMargin: '0px'
+      }
+    );
+
+    observer.observe(video);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [isVideo]);
 
   return (
     <div>
@@ -347,21 +379,28 @@ const ContentCard = ({ content, onLike, onShare }: {
       <div className="aspect-square relative bg-muted">
         {isVideo ? (
           <video 
+            ref={videoRef}
             src={content.file_url}
             className="w-full h-full object-cover"
-            controls
+            loop
+            muted
             playsInline
-            preload="metadata"
+            preload="auto"
             poster={content.thumbnail_url}
+            onLoadStart={() => console.log('Video loading:', content.file_url)}
+            style={{ objectFit: 'cover' }}
           />
         ) : (
           <img 
             src={content.file_url} 
             alt={content.title}
             className="w-full h-full object-cover"
+            loading="eager"
+            decoding="sync"
             onError={(e) => {
               e.currentTarget.src = '/placeholder.svg';
             }}
+            style={{ objectFit: 'cover' }}
           />
         )}
       </div>
