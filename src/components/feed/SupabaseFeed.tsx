@@ -333,11 +333,18 @@ const ContentCard = ({ content, onLike, onShare }: {
         setIsInView(entry.isIntersecting);
         
         if (entry.isIntersecting) {
-          // Video is in viewport - play it
-          video.play().catch(console.error);
+          // Video is in viewport - try to play it
+          const playPromise = video.play();
+          if (playPromise !== undefined) {
+            playPromise.catch(() => {
+              // Autoplay was prevented, this is normal
+            });
+          }
         } else {
           // Video is out of viewport - pause it
-          video.pause();
+          if (!video.paused) {
+            video.pause();
+          }
         }
       },
       {
