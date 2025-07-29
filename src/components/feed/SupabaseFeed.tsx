@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Heart, MessageCircle, Share, Eye, RefreshCw, Play } from 'lucide-react';
+import { Heart, MessageCircle, Share, Eye, RefreshCw, Play, X, Maximize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
 
 interface Profile {
@@ -361,9 +362,11 @@ const ContentCard = ({ content, onLike, onShare }: {
 }) => {
   const isVideo = content.content_type.startsWith('video/');
   const videoRef = useRef<HTMLVideoElement>(null);
+  const fullscreenVideoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [showPlayButton, setShowPlayButton] = useState(isVideo);
   const [videoError, setVideoError] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   // Enhanced video intersection observer with better autoplay logic
   useEffect(() => {
@@ -430,6 +433,28 @@ const ContentCard = ({ content, onLike, onShare }: {
     }
   };
 
+  const handleVideoClick = () => {
+    if (isVideo && isPlaying) {
+      // Expand video if it's playing
+      setIsExpanded(true);
+      // Sync fullscreen video with current video
+      if (fullscreenVideoRef.current && videoRef.current) {
+        fullscreenVideoRef.current.currentTime = videoRef.current.currentTime;
+      }
+    } else {
+      // Just toggle play if not playing
+      toggleVideoPlay();
+    }
+  };
+
+  const closeExpanded = () => {
+    setIsExpanded(false);
+    // Sync original video with fullscreen video time
+    if (fullscreenVideoRef.current && videoRef.current) {
+      videoRef.current.currentTime = fullscreenVideoRef.current.currentTime;
+    }
+  };
+
   return (
     <Card className="w-full overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 mb-6">
       <CardContent className="p-0">
@@ -465,13 +490,13 @@ const ContentCard = ({ content, onLike, onShare }: {
               <video 
                 ref={videoRef}
                 src={content.file_url}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover cursor-pointer"
                 loop
                 muted
                 playsInline
                 preload="metadata"
                 poster={content.thumbnail_url}
-                onClick={toggleVideoPlay}
+                onClick={handleVideoClick}
                 onError={() => setVideoError(true)}
                 onCanPlay={() => setVideoError(false)}
                 style={{ objectFit: 'cover' }}
@@ -484,6 +509,14 @@ const ContentCard = ({ content, onLike, onShare }: {
                   <div className="bg-white/90 rounded-full p-4 shadow-lg hover:bg-white transition-colors">
                     <Play className="w-8 h-8 text-black ml-1" />
                   </div>
+                </button>
+              )}
+              {isPlaying && (
+                <button
+                  onClick={() => setIsExpanded(true)}
+                  className="absolute top-4 right-4 bg-black/50 rounded-full p-2 hover:bg-black/70 transition-colors opacity-0 group-hover:opacity-100"
+                >
+                  <Maximize2 className="w-4 h-4 text-white" />
                 </button>
               )}
               {videoError && (
@@ -550,6 +583,32 @@ const ContentCard = ({ content, onLike, onShare }: {
             </div>
           </div>
         </div>
+
+        {/* Expanded Video Modal */}
+        <Dialog open={isExpanded} onOpenChange={setIsExpanded}>
+          <DialogContent className="max-w-none w-screen h-screen p-0 bg-black/95">
+            <div className="relative w-full h-full flex items-center justify-center">
+              <button
+                onClick={closeExpanded}
+                className="absolute top-4 right-4 z-50 bg-black/50 rounded-full p-3 hover:bg-black/70 transition-colors"
+              >
+                <X className="w-6 h-6 text-white" />
+              </button>
+              
+              <video 
+                ref={fullscreenVideoRef}
+                src={content.file_url}
+                className="max-w-full max-h-full object-contain"
+                controls
+                autoPlay
+                loop
+                muted
+                playsInline
+                poster={content.thumbnail_url}
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );
