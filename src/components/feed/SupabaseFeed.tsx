@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Heart, X, MessageCircle, Share, Eye, RefreshCw } from 'lucide-react';
+import { Heart, MessageCircle, Share, Eye, RefreshCw, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -57,22 +57,25 @@ export const SupabaseFeed = () => {
     try {
       setLoading(true);
 
-      // Get admin content from both admin_content and posts tables
+      // Enhanced queries with proper filtering for published and paid content
       const [adminContentResult, postsResult] = await Promise.all([
-        // Fetch ALL admin content
+        // Fetch published admin content only
         supabase
           .from('admin_content')
           .select(`
             id, title, description, file_url, thumbnail_url, content_type, 
             view_count, like_count, share_count, is_promoted, category, 
-            created_at, admin_id,
+            created_at, admin_id, status, approval_status,
             profiles!admin_id(display_name, role)
           `)
+          .eq('status', 'published')
+          .eq('approval_status', 'approved')
           .not('file_url', 'is', null)
+          .order('is_promoted', { ascending: false })
           .order('created_at', { ascending: false })
-          .limit(500),
+          .limit(100),
 
-        // Fetch ALL posts from posts table
+        // Fetch active paid posts only
         supabase
           .from('posts')
           .select(`
@@ -80,50 +83,49 @@ export const SupabaseFeed = () => {
             created_at, provider_id, payment_status, expires_at,
             profiles!provider_id(display_name, role)
           `)
+          .eq('payment_status', 'paid')
+          .gt('expires_at', new Date().toISOString())
           .not('content_url', 'is', null)
+          .order('promotion_type', { ascending: false })
           .order('created_at', { ascending: false })
-          .limit(500)
+          .limit(100)
       ]);
 
       const adminContent = adminContentResult.data || [];
       const posts = postsResult.data || [];
 
-      console.log('Supabase feed results:', { 
+      console.log('Optimized feed fetch:', { 
         adminContent: adminContent.length, 
         posts: posts.length,
-        adminContentData: adminContent.slice(0, 2),
-        postsData: posts.slice(0, 2)
+        timestamp: new Date().toISOString()
       });
 
-      // Transform data into feed items
+      // Transform data into feed items with better content type detection
       const feedItems: FeedItem[] = [];
 
-      // Add admin content from admin_content table
+      // Process admin content
       adminContent
-        .filter(item => {
-          if (!item.file_url) return false;
-          if (item.file_url.includes('blob:')) return false;
-          return true;
-        })
+        .filter(item => item.file_url && !item.file_url.includes('blob:'))
         .forEach(item => {
+          const adminProfile = Array.isArray(item.profiles) ? item.profiles[0] : item.profiles;
+          
+          // Better content type detection
           let contentType = item.content_type || 'image/jpeg';
           const url = item.file_url.toLowerCase();
           
-          if (url.includes('.mp4') || url.includes('.mov') || url.includes('.avi') || url.includes('.webm') || url.includes('video')) {
+          if (url.match(/\.(mp4|mov|avi|webm|mkv)(\?|$)/)) {
             contentType = 'video/mp4';
-          } else if (url.includes('.jpg') || url.includes('.jpeg') || url.includes('.png') || url.includes('.gif') || url.includes('.webp') || url.includes('image')) {
+          } else if (url.match(/\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/)) {
             contentType = 'image/jpeg';
           }
-
-          const adminProfile = Array.isArray(item.profiles) ? item.profiles[0] : item.profiles;
           
           feedItems.push({
             id: `admin-content-${item.id}`,
             type: 'content',
             data: {
               id: item.id,
-              title: item.title || 'Admin Content',
-              description: item.description || 'Exclusive content from admin',
+              title: item.title || 'Featured Content',
+              description: item.description || 'Discover amazing content',
               file_url: item.file_url,
               thumbnail_url: item.thumbnail_url,
               content_type: contentType,
@@ -133,24 +135,15 @@ export const SupabaseFeed = () => {
               is_promoted: item.is_promoted || false,
               category: item.category || 'general',
               created_at: item.created_at,
-              admin_name: adminProfile?.display_name || 'Admin Creator'
+              admin_name: adminProfile?.display_name || 'Admin'
             }
           });
         });
 
-      // Add posts from posts table
+      // Process posts
       posts
-        .filter(post => {
-          if (!post.content_url) return false;
-          if (post.content_url.includes('blob:')) return false;
-          return true;
-        })
+        .filter(post => post.content_url && !post.content_url.includes('blob:'))
         .forEach(post => {
-          let contentType = 'image/jpeg';
-          if (post.post_type === 'video') {
-            contentType = 'video/mp4';
-          }
-
           const providerProfile = Array.isArray(post.profiles) ? post.profiles[0] : post.profiles;
           
           feedItems.push({
@@ -158,10 +151,10 @@ export const SupabaseFeed = () => {
             type: 'content',
             data: {
               id: post.id,
-              title: post.caption || 'Post Content',
-              description: `${post.promotion_type} promotion`,
+              title: post.caption || 'Premium Content',
+              description: `${post.promotion_type} premium content`,
               file_url: post.content_url,
-              content_type: contentType,
+              content_type: post.post_type === 'video' ? 'video/mp4' : 'image/jpeg',
               view_count: 0,
               like_count: 0,
               share_count: 0,
@@ -173,33 +166,43 @@ export const SupabaseFeed = () => {
           });
         });
 
-      // Sort all content by creation date, prioritizing promoted content
-      const sortedItems = feedItems.sort((a, b) => {
-        const aData = a.data as ContentItem;
-        const bData = b.data as ContentItem;
+      // Social media algorithm: Smart content mixing
+      const promotedItems = feedItems.filter(item => (item.data as ContentItem).is_promoted);
+      const regularItems = feedItems.filter(item => !(item.data as ContentItem).is_promoted);
+      
+      // Interleave promoted content every 3 items for better engagement
+      const mixedItems: FeedItem[] = [];
+      let promotedIndex = 0;
+      
+      regularItems.forEach((item, index) => {
+        mixedItems.push(item);
         
-        // Prioritize promoted content
-        if (aData.is_promoted && !bData.is_promoted) return -1;
-        if (!aData.is_promoted && bData.is_promoted) return 1;
-        
-        // Then sort by creation date (newest first)
-        return new Date(bData.created_at).getTime() - new Date(aData.created_at).getTime();
+        // Insert promoted content every 3 items
+        if ((index + 1) % 3 === 0 && promotedIndex < promotedItems.length) {
+          mixedItems.push(promotedItems[promotedIndex]);
+          promotedIndex++;
+        }
       });
+      
+      // Add remaining promoted items at the beginning
+      const remainingPromoted = promotedItems.slice(promotedIndex);
+      const finalFeed = [...remainingPromoted, ...mixedItems];
 
       console.log('Feed composition:', {
-        total: sortedItems.length,
+        total: finalFeed.length,
+        promoted: promotedItems.length,
+        regular: regularItems.length,
         adminContent: adminContent.length,
-        posts: posts.length,
-        promoted: sortedItems.filter(item => (item.data as ContentItem).is_promoted).length
+        posts: posts.length
       });
 
-      setFeedItems(sortedItems);
+      setFeedItems(finalFeed);
 
     } catch (error) {
       console.error('Error fetching Supabase feed:', error);
       toast({
         title: "Error loading feed",
-        description: "Please try refreshing the page",
+        description: "Please check your connection and try again",
         variant: "destructive"
       });
     } finally {
@@ -208,9 +211,46 @@ export const SupabaseFeed = () => {
     }
   }, [user]);
 
+  // Initial load with realtime subscription
   useEffect(() => {
-    fetchFeedData();
-  }, [fetchFeedData]);
+    if (user) {
+      fetchFeedData();
+      
+      // Set up realtime updates for new content
+      const adminContentChannel = supabase
+        .channel('admin_content_changes')
+        .on('postgres_changes', 
+          { event: 'INSERT', schema: 'public', table: 'admin_content' },
+          (payload) => {
+            console.log('New admin content:', payload);
+            // Auto-refresh on new published content
+            if (payload.new?.status === 'published') {
+              setTimeout(() => fetchFeedData(), 1000);
+            }
+          }
+        )
+        .subscribe();
+
+      const postsChannel = supabase
+        .channel('posts_changes')
+        .on('postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'posts' },
+          (payload) => {
+            console.log('New post:', payload);
+            // Auto-refresh on new paid posts
+            if (payload.new?.payment_status === 'paid') {
+              setTimeout(() => fetchFeedData(), 1000);
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(adminContentChannel);
+        supabase.removeChannel(postsChannel);
+      };
+    }
+  }, [user, fetchFeedData]);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -313,7 +353,7 @@ export const SupabaseFeed = () => {
   );
 };
 
-// Content Card Component with Auto-play and Optimal Loading
+// Enhanced Content Card Component with Perfect Video Handling
 const ContentCard = ({ content, onLike, onShare }: {
   content: ContentItem;
   onLike: () => void;
@@ -321,8 +361,11 @@ const ContentCard = ({ content, onLike, onShare }: {
 }) => {
   const isVideo = content.content_type.startsWith('video/');
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [isInView, setIsInView] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [showPlayButton, setShowPlayButton] = useState(isVideo);
+  const [videoError, setVideoError] = useState(false);
 
+  // Enhanced video intersection observer with better autoplay logic
   useEffect(() => {
     if (!isVideo || !videoRef.current) return;
 
@@ -330,25 +373,32 @@ const ContentCard = ({ content, onLike, onShare }: {
     const observer = new IntersectionObserver(
       (entries) => {
         const entry = entries[0];
-        setIsInView(entry.isIntersecting);
         
-        if (entry.isIntersecting) {
-          // Video is in viewport - try to play it
+        if (entry.isIntersecting && entry.intersectionRatio > 0.7) {
+          // Video is 70% visible - attempt autoplay
           const playPromise = video.play();
           if (playPromise !== undefined) {
-            playPromise.catch(() => {
-              // Autoplay was prevented, this is normal
-            });
+            playPromise
+              .then(() => {
+                setIsPlaying(true);
+                setShowPlayButton(false);
+              })
+              .catch((error) => {
+                console.log('Autoplay blocked:', error);
+                setShowPlayButton(true);
+              });
           }
-        } else {
-          // Video is out of viewport - pause it
+        } else if (entry.intersectionRatio < 0.3) {
+          // Video is less than 30% visible - pause it
           if (!video.paused) {
             video.pause();
+            setIsPlaying(false);
+            setShowPlayButton(true);
           }
         }
       },
       {
-        threshold: 0.6, // Play when 60% of video is visible
+        threshold: [0.3, 0.7],
         rootMargin: '0px'
       }
     );
@@ -360,83 +410,147 @@ const ContentCard = ({ content, onLike, onShare }: {
     };
   }, [isVideo]);
 
+  const toggleVideoPlay = () => {
+    if (!videoRef.current) return;
+    
+    if (isPlaying) {
+      videoRef.current.pause();
+      setIsPlaying(false);
+      setShowPlayButton(true);
+    } else {
+      videoRef.current.play()
+        .then(() => {
+          setIsPlaying(true);
+          setShowPlayButton(false);
+        })
+        .catch((error) => {
+          console.error('Video play error:', error);
+          setVideoError(true);
+        });
+    }
+  };
+
   return (
-    <div>
-      {/* Content Header */}
-      <div className="flex items-center gap-3 p-4 pb-3">
-        <Avatar className="w-10 h-10">
-          <AvatarFallback className="text-sm font-medium">
-            {content.admin_name?.[0] || 'A'}
-          </AvatarFallback>
-        </Avatar>
-        <div className="flex-1">
-          <p className="font-semibold text-sm">{content.admin_name}</p>
-          <p className="text-xs text-muted-foreground">
-            {new Date(content.created_at).toLocaleDateString()}
-          </p>
+    <Card className="w-full overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 mb-6">
+      <CardContent className="p-0">
+        {/* Content Header */}
+        <div className="flex items-center gap-3 p-4 pb-3">
+          <Avatar className="w-10 h-10 ring-2 ring-primary/20">
+            <AvatarFallback className="text-sm font-medium bg-gradient-to-br from-primary to-primary/60 text-primary-foreground">
+              {content.admin_name?.[0]?.toUpperCase() || 'A'}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1">
+            <p className="font-semibold text-sm">{content.admin_name}</p>
+            <p className="text-xs text-muted-foreground">
+              {new Date(content.created_at).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit'
+              })}
+            </p>
+          </div>
+          {content.is_promoted && (
+            <Badge className="bg-gradient-to-r from-pink-500 to-purple-500 text-white shadow-lg">
+              ✨ Featured
+            </Badge>
+          )}
         </div>
-        {content.is_promoted && (
-          <Badge className="bg-gradient-to-r from-pink-500 to-purple-500 text-white">
-            Featured
-          </Badge>
-        )}
-      </div>
 
-      {/* Content Media */}
-      <div className="aspect-square relative bg-muted">
-        {isVideo ? (
-          <video 
-            ref={videoRef}
-            src={content.file_url}
-            className="w-full h-full object-cover"
-            loop
-            muted
-            playsInline
-            preload="auto"
-            poster={content.thumbnail_url}
-            onLoadStart={() => console.log('Video loading:', content.file_url)}
-            style={{ objectFit: 'cover' }}
-          />
-        ) : (
-          <img 
-            src={content.file_url} 
-            alt={content.title}
-            className="w-full h-full object-cover"
-            loading="eager"
-            decoding="sync"
-            onError={(e) => {
-              e.currentTarget.src = '/placeholder.svg';
-            }}
-            style={{ objectFit: 'cover' }}
-          />
-        )}
-      </div>
+        {/* Content Media */}
+        <div className="aspect-square relative bg-muted group">
+          {isVideo ? (
+            <>
+              <video 
+                ref={videoRef}
+                src={content.file_url}
+                className="w-full h-full object-cover"
+                loop
+                muted
+                playsInline
+                preload="metadata"
+                poster={content.thumbnail_url}
+                onClick={toggleVideoPlay}
+                onError={() => setVideoError(true)}
+                onCanPlay={() => setVideoError(false)}
+                style={{ objectFit: 'cover' }}
+              />
+              {showPlayButton && !videoError && (
+                <button
+                  onClick={toggleVideoPlay}
+                  className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/30 transition-colors"
+                >
+                  <div className="bg-white/90 rounded-full p-4 shadow-lg hover:bg-white transition-colors">
+                    <Play className="w-8 h-8 text-black ml-1" />
+                  </div>
+                </button>
+              )}
+              {videoError && (
+                <div className="absolute inset-0 flex items-center justify-center bg-muted">
+                  <div className="text-center">
+                    <div className="w-16 h-16 mx-auto bg-muted-foreground/20 rounded-full flex items-center justify-center mb-2">
+                      <Play className="w-8 h-8 text-muted-foreground" />
+                    </div>
+                    <p className="text-sm text-muted-foreground">Video unavailable</p>
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <img 
+              src={content.file_url} 
+              alt={content.title}
+              className="w-full h-full object-cover"
+              loading="lazy"
+              onError={(e) => {
+                e.currentTarget.src = '/placeholder.svg';
+              }}
+              style={{ objectFit: 'cover' }}
+            />
+          )}
+        </div>
 
-      {/* Content Info */}
-      <div className="p-4">
-        <h3 className="font-bold text-foreground mb-2 text-lg">{content.title}</h3>
-        {content.description && (
-          <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
-            {content.description}
-          </p>
-        )}
+        {/* Content Info */}
+        <div className="p-4">
+          <h3 className="font-bold text-foreground mb-2 text-lg leading-tight">
+            {content.title}
+          </h3>
+          {content.description && (
+            <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+              {content.description}
+            </p>
+          )}
 
-        {/* Action Buttons */}
-        <div className="flex items-center gap-6">
-          <Button onClick={onLike} variant="ghost" size="sm" className="gap-2 p-2">
-            <Heart className="w-5 h-5" />
-            <span className="font-medium">{content.like_count || 0}</span>
-          </Button>
-          <Button onClick={onShare} variant="ghost" size="sm" className="gap-2 p-2">
-            <Share className="w-5 h-5" />
-            <span className="font-medium">Share</span>
-          </Button>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground ml-auto">
-            <Eye className="w-4 h-4" />
-            <span>{content.view_count || 0}</span>
+          {/* Action Buttons */}
+          <div className="flex items-center gap-4">
+            <Button 
+              onClick={onLike} 
+              variant="ghost" 
+              size="sm" 
+              className="gap-2 p-2 hover:bg-red-50 hover:text-red-600 transition-colors"
+            >
+              <Heart className="w-5 h-5" />
+              <span className="font-medium">{content.like_count.toLocaleString()}</span>
+            </Button>
+            
+            <Button 
+              onClick={onShare} 
+              variant="ghost" 
+              size="sm" 
+              className="gap-2 p-2 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+            >
+              <Share className="w-5 h-5" />
+              <span className="font-medium">Share</span>
+            </Button>
+            
+            <div className="flex items-center gap-2 text-sm text-muted-foreground ml-auto">
+              <Eye className="w-4 h-4" />
+              <span>{content.view_count.toLocaleString()}</span>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 };
