@@ -170,34 +170,55 @@ export const SupabaseFeed = () => {
           });
         });
 
-      // Social media algorithm: Smart content mixing
+      // SMART SHUFFLE ALGORITHM - Randomize content every time
+      const shuffleArray = (array: any[]) => {
+        const shuffled = [...array];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        return shuffled;
+      };
+
+      // Separate promoted and regular content
       const promotedItems = feedItems.filter(item => (item.data as ContentItem).is_promoted);
       const regularItems = feedItems.filter(item => !(item.data as ContentItem).is_promoted);
       
-      // Interleave promoted content every 3 items for better engagement
+      // Shuffle both groups for variety
+      const shuffledPromoted = shuffleArray(promotedItems);
+      const shuffledRegular = shuffleArray(regularItems);
+      
+      // Smart interleaving: promoted content every 2-4 items (randomized)
       const mixedItems: FeedItem[] = [];
       let promotedIndex = 0;
+      let regularIndex = 0;
       
-      regularItems.forEach((item, index) => {
-        mixedItems.push(item);
+      while (regularIndex < shuffledRegular.length || promotedIndex < shuffledPromoted.length) {
+        // Add 2-4 regular items randomly
+        const regularBatch = Math.floor(Math.random() * 3) + 2; // 2-4 items
         
-        // Insert promoted content every 3 items
-        if ((index + 1) % 3 === 0 && promotedIndex < promotedItems.length) {
-          mixedItems.push(promotedItems[promotedIndex]);
+        for (let i = 0; i < regularBatch && regularIndex < shuffledRegular.length; i++) {
+          mixedItems.push(shuffledRegular[regularIndex]);
+          regularIndex++;
+        }
+        
+        // Add 1 promoted item if available
+        if (promotedIndex < shuffledPromoted.length) {
+          mixedItems.push(shuffledPromoted[promotedIndex]);
           promotedIndex++;
         }
-      });
+      }
       
-      // Add remaining promoted items at the beginning
-      const remainingPromoted = promotedItems.slice(promotedIndex);
-      const finalFeed = [...remainingPromoted, ...mixedItems];
+      // Final shuffle for maximum variety
+      const finalFeed = shuffleArray(mixedItems);
 
-      console.log('Feed composition:', {
+      console.log('Shuffled feed composition:', {
         total: finalFeed.length,
         promoted: promotedItems.length,
         regular: regularItems.length,
         adminContent: adminContent.length,
-        posts: posts.length
+        posts: posts.length,
+        shuffled: true
       });
 
       setFeedItems(finalFeed);
