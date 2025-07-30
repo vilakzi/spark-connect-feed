@@ -4,7 +4,7 @@ import { usePresence } from '@/hooks/usePresence';
 import { useActivityTracker } from '@/hooks/useActivityTracker';
 import { useChat } from '@/hooks/useChat';
 import { Button } from '@/components/ui/button';
-import { SupabaseFeed } from '@/components/feed/SupabaseFeed';
+import { OptimizedFeed } from '@/components/feed/OptimizedFeed';
 import { MatchesList } from '@/components/matches/MatchesList';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
 import { ProfileEdit } from '@/components/profile/ProfileEdit';
@@ -53,7 +53,7 @@ const Index = () => {
   const renderContent = () => {
     switch (currentView) {
       case 'feed':
-        return <SupabaseFeed />;
+        return <OptimizedFeed />;
       case 'matches':
         return <MatchesList onStartChat={handleStartChat} />;
       case 'chat':
@@ -70,7 +70,7 @@ const Index = () => {
       case 'editProfile':
         return <ProfileEdit onBack={() => setCurrentView('profile')} />;
       default:
-        return <SupabaseFeed />;
+        return <OptimizedFeed />;
     }
   };
 

@@ -122,22 +122,35 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   };
 
   const signInWithGoogle = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/`
-      }
-    });
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          }
+        }
+      });
 
-    if (error) {
+      if (error) {
+        toast({
+          title: "Google sign in failed",
+          description: error.message,
+          variant: "destructive"
+        });
+      }
+
+      return { error };
+    } catch (error: any) {
       toast({
         title: "Google sign in failed",
-        description: error.message,
+        description: "Please try again or check your internet connection",
         variant: "destructive"
       });
+      return { error };
     }
-
-    return { error };
   };
 
   const signOut = async () => {
