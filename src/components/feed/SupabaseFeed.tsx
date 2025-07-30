@@ -49,14 +49,17 @@ interface FeedItem {
 export const SupabaseFeed = () => {
   const { user } = useAuth();
   const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [initialLoad, setInitialLoad] = useState(true);
 
   const fetchFeedData = useCallback(async () => {
     if (!user) return;
 
     try {
-      setLoading(true);
+      if (initialLoad) {
+        setLoading(true);
+      }
 
       // Enhanced queries with proper filtering for published and paid content
       const [adminContentResult, postsResult] = await Promise.all([
@@ -74,7 +77,7 @@ export const SupabaseFeed = () => {
           .not('file_url', 'is', null)
           .order('is_promoted', { ascending: false })
           .order('created_at', { ascending: false })
-          .limit(100),
+          .limit(50),
 
         // Fetch active paid posts only
         supabase
@@ -89,7 +92,7 @@ export const SupabaseFeed = () => {
           .not('content_url', 'is', null)
           .order('promotion_type', { ascending: false })
           .order('created_at', { ascending: false })
-          .limit(100)
+          .limit(30)
       ]);
 
       const adminContent = adminContentResult.data || [];
@@ -209,8 +212,9 @@ export const SupabaseFeed = () => {
     } finally {
       setLoading(false);
       setRefreshing(false);
+      setInitialLoad(false);
     }
-  }, [user]);
+  }, [user, initialLoad]);
 
   // Initial load with realtime subscription
   useEffect(() => {
@@ -291,14 +295,27 @@ export const SupabaseFeed = () => {
     }
   };
 
-  if (loading) {
+  if (loading && initialLoad) {
     return (
       <div className="min-h-screen bg-background p-4">
-        <div className="max-w-md mx-auto space-y-4">
-          {[...Array(6)].map((_, i) => (
+        <div className="max-w-md mx-auto space-y-3">
+          {[...Array(4)].map((_, i) => (
             <Card key={i} className="w-full">
               <CardContent className="p-0">
-                <Skeleton className="w-full h-96" />
+                <div className="space-y-2 p-4">
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="w-10 h-10 rounded-full" />
+                    <div className="space-y-1">
+                      <Skeleton className="w-20 h-4" />
+                      <Skeleton className="w-16 h-3" />
+                    </div>
+                  </div>
+                </div>
+                <Skeleton className="w-full h-80" />
+                <div className="p-4 space-y-2">
+                  <Skeleton className="w-3/4 h-4" />
+                  <Skeleton className="w-1/2 h-3" />
+                </div>
               </CardContent>
             </Card>
           ))}
