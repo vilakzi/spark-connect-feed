@@ -223,7 +223,7 @@ export type Database = {
           {
             foreignKeyName: "content_analytics_content_id_fkey"
             columns: ["content_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "admin_content"
             referencedColumns: ["id"]
           },
