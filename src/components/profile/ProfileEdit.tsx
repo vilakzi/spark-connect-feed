@@ -9,10 +9,13 @@ import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { ImageUpload } from './ImageUpload';
 import { InterestTags } from './InterestTags';
+import { LocationSettings } from './LocationSettings';
+import { DiscoverySettings } from './DiscoverySettings';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Save, User, Camera, Heart, Settings, MapPin } from 'lucide-react';
+import { ArrowLeft, Save, User, Camera, Heart, Settings, MapPin, Search, Shield } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface ProfileFormData {
   display_name: string;
@@ -41,7 +44,7 @@ export const ProfileEdit = ({ onBack }: ProfileEditProps) => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [activeSection, setActiveSection] = useState<'basic' | 'photos' | 'interests' | 'privacy'>('basic');
+  const [activeSection, setActiveSection] = useState<'basic' | 'photos' | 'interests' | 'location' | 'discovery' | 'privacy'>('basic');
   
   const [formData, setFormData] = useState<ProfileFormData>({
     display_name: '',
@@ -174,7 +177,9 @@ export const ProfileEdit = ({ onBack }: ProfileEditProps) => {
     { id: 'basic' as const, label: 'Basic Info', icon: User },
     { id: 'photos' as const, label: 'Photos', icon: Camera },
     { id: 'interests' as const, label: 'Interests', icon: Heart },
-    { id: 'privacy' as const, label: 'Privacy', icon: Settings }
+    { id: 'location' as const, label: 'Location', icon: MapPin },
+    { id: 'discovery' as const, label: 'Discovery', icon: Search },
+    { id: 'privacy' as const, label: 'Privacy', icon: Shield }
   ];
 
   if (loading) {
@@ -340,6 +345,10 @@ export const ProfileEdit = ({ onBack }: ProfileEditProps) => {
                 </CardContent>
               </Card>
             )}
+
+            {activeSection === 'location' && <LocationSettings />}
+            
+            {activeSection === 'discovery' && <DiscoverySettings />}
 
             {activeSection === 'privacy' && (
               <Card>

@@ -5,16 +5,17 @@ import { useActivityTracker } from '@/hooks/useActivityTracker';
 import { useChat } from '@/hooks/useChat';
 import { Button } from '@/components/ui/button';
 import { SupabaseFeed } from '@/components/feed/SupabaseFeed';
+import { SwipeInterface } from '@/components/swipe/SwipeInterface';
 import { MatchesList } from '@/components/matches/MatchesList';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
 import { ProfileEdit } from '@/components/profile/ProfileEdit';
 import { ProfileCompletion } from '@/components/profile/ProfileCompletion';
 import { ConversationList } from '@/components/chat/ConversationList';
 import { ChatInterface } from '@/components/chat/ChatInterface';
-import { LogOut, Heart, Users, Layers, Star, User, MessageCircle, Settings } from 'lucide-react';
+import { LogOut, Heart, Users, Layers, Star, User, MessageCircle, Settings, Search } from 'lucide-react';
 import { useAdminCheck } from '@/hooks/useAdminCheck';
 
-type ViewMode = 'feed' | 'matches' | 'profile' | 'editProfile' | 'chat' | 'chatInterface';
+type ViewMode = 'feed' | 'discover' | 'matches' | 'profile' | 'editProfile' | 'chat' | 'chatInterface';
 
 const Index = () => {
   const { user, signOut } = useAuth();
@@ -54,6 +55,8 @@ const Index = () => {
     switch (currentView) {
       case 'feed':
         return <SupabaseFeed />;
+      case 'discover':
+        return <SwipeInterface />;
       case 'matches':
         return <MatchesList onStartChat={handleStartChat} />;
       case 'chat':
@@ -118,6 +121,12 @@ const Index = () => {
           <div className="container mx-auto px-4 py-6 max-w-md">
             {renderContent()}
           </div>
+        ) : currentView === 'discover' ? (
+          <div className="h-full flex items-center justify-center p-4">
+            <div className="w-full max-w-sm h-full">
+              {renderContent()}
+            </div>
+          </div>
         ) : (
           renderContent()
         )}
@@ -131,17 +140,27 @@ const Index = () => {
               variant={currentView === 'feed' ? 'default' : 'ghost'}
               size="sm"
               onClick={() => setCurrentView('feed')}
-              className="flex flex-col items-center gap-1 h-auto py-2 px-4"
+              className="flex flex-col items-center gap-1 h-auto py-2 px-3"
             >
               <Layers className="w-5 h-5" />
               <span className="text-xs">Feed</span>
             </Button>
             
             <Button
+              variant={currentView === 'discover' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setCurrentView('discover')}
+              className="flex flex-col items-center gap-1 h-auto py-2 px-3"
+            >
+              <Search className="w-5 h-5" />
+              <span className="text-xs">Discover</span>
+            </Button>
+            
+            <Button
               variant={currentView === 'matches' ? 'default' : 'ghost'}
               size="sm"
               onClick={() => setCurrentView('matches')}
-              className="flex flex-col items-center gap-1 h-auto py-2 px-4"
+              className="flex flex-col items-center gap-1 h-auto py-2 px-3"
             >
               <Users className="w-5 h-5" />
               <span className="text-xs">Matches</span>
@@ -151,7 +170,7 @@ const Index = () => {
               variant={currentView === 'chat' ? 'default' : 'ghost'}
               size="sm"
               onClick={() => setCurrentView('chat')}
-              className="flex flex-col items-center gap-1 h-auto py-2 px-4"
+              className="flex flex-col items-center gap-1 h-auto py-2 px-3"
             >
               <MessageCircle className="w-5 h-5" />
               <span className="text-xs">Chat</span>
@@ -161,7 +180,7 @@ const Index = () => {
               variant={currentView === 'profile' ? 'default' : 'ghost'}
               size="sm"
               onClick={() => setCurrentView('profile')}
-              className="flex flex-col items-center gap-1 h-auto py-2 px-4"
+              className="flex flex-col items-center gap-1 h-auto py-2 px-3"
             >
               <User className="w-5 h-5" />
               <span className="text-xs">Profile</span>
