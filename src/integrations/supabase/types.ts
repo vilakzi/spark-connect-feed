@@ -432,6 +432,51 @@ export type Database = {
           },
         ]
       }
+      notification_preferences: {
+        Row: {
+          created_at: string
+          email_enabled: boolean | null
+          id: string
+          marketing: boolean | null
+          new_matches: boolean | null
+          new_messages: boolean | null
+          profile_views: boolean | null
+          push_enabled: boolean | null
+          stories: boolean | null
+          super_likes: boolean | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email_enabled?: boolean | null
+          id?: string
+          marketing?: boolean | null
+          new_matches?: boolean | null
+          new_messages?: boolean | null
+          profile_views?: boolean | null
+          push_enabled?: boolean | null
+          stories?: boolean | null
+          super_likes?: boolean | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email_enabled?: boolean | null
+          id?: string
+          marketing?: boolean | null
+          new_matches?: boolean | null
+          new_messages?: boolean | null
+          profile_views?: boolean | null
+          push_enabled?: boolean | null
+          stories?: boolean | null
+          super_likes?: boolean | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string | null
@@ -682,6 +727,27 @@ export type Database = {
           },
         ]
       }
+      profile_views: {
+        Row: {
+          created_at: string
+          id: string
+          viewed_id: string
+          viewer_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          viewed_id: string
+          viewer_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          viewed_id?: string
+          viewer_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           age: number | null
@@ -748,6 +814,87 @@ export type Database = {
           user_type?: Database["public"]["Enums"]["user_type"] | null
           verifications?: Json | null
           whatsapp?: string | null
+        }
+        Relationships: []
+      }
+      report_evidence: {
+        Row: {
+          created_at: string
+          evidence_data: Json | null
+          evidence_type: string
+          evidence_url: string | null
+          id: string
+          report_id: string
+        }
+        Insert: {
+          created_at?: string
+          evidence_data?: Json | null
+          evidence_type: string
+          evidence_url?: string | null
+          id?: string
+          report_id: string
+        }
+        Update: {
+          created_at?: string
+          evidence_data?: Json | null
+          evidence_type?: string
+          evidence_url?: string | null
+          id?: string
+          report_id?: string
+        }
+        Relationships: []
+      }
+      stories: {
+        Row: {
+          caption: string | null
+          content_type: string
+          content_url: string
+          created_at: string
+          expires_at: string
+          id: string
+          user_id: string
+          view_count: number | null
+        }
+        Insert: {
+          caption?: string | null
+          content_type?: string
+          content_url: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          user_id: string
+          view_count?: number | null
+        }
+        Update: {
+          caption?: string | null
+          content_type?: string
+          content_url?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          user_id?: string
+          view_count?: number | null
+        }
+        Relationships: []
+      }
+      story_views: {
+        Row: {
+          created_at: string
+          id: string
+          story_id: string
+          viewer_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          story_id: string
+          viewer_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          story_id?: string
+          viewer_id?: string
         }
         Relationships: []
       }
@@ -893,6 +1040,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_behavior_analytics: {
+        Row: {
+          action_type: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          target_user_id: string | null
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          target_user_id?: string | null
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          target_user_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       user_preferences: {
         Row: {
