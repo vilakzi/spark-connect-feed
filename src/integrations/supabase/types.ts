@@ -1263,6 +1263,15 @@ export type Database = {
         Args: { file_data: string }
         Returns: string
       }
+      get_ai_matching_suggestions: {
+        Args: { user_id_param: string; limit_param?: number }
+        Returns: {
+          user_id: string
+          compatibility_score: number
+          common_interests: number
+          activity_score: number
+        }[]
+      }
       get_content_analytics_summary: {
         Args: Record<PropertyKey, never>
         Returns: {

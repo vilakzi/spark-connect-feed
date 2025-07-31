@@ -28,33 +28,66 @@ export const useAIMatching = () => {
 
     try {
       setLoading(true);
-      const { data, error } = await supabase.rpc('get_ai_matching_suggestions', {
-        user_id_param: user.id,
-        limit_param: limit
-      });
+      
+      // Get potential matches using direct query
+      const { data: profilesData, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .neq('id', user.id)
+        .eq('is_blocked', false)
+        .limit(limit * 2); // Get more to filter out already swiped
 
       if (error) throw error;
 
-      if (!data || data.length === 0) {
+      if (!profilesData || profilesData.length === 0) {
         setSuggestions([]);
         return;
       }
 
-      // Get full profile data for suggestions
-      const userIds = data.map((s: any) => s.user_id);
-      const { data: profilesData } = await supabase
+      // Get user's own profile for comparison
+      const { data: userProfile } = await supabase
         .from('profiles')
-        .select('*')
-        .in('id', userIds);
+        .select('interests')
+        .eq('id', user.id)
+        .single();
 
-      const profilesMap = new Map(profilesData?.map(p => [p.id, p]) || []);
+      // Get users already swiped
+      const { data: swipedUsers } = await supabase
+        .from('swipes')
+        .select('target_user_id')
+        .eq('user_id', user.id);
 
-      const enrichedSuggestions = data.map((suggestion: any) => ({
-        ...suggestion,
-        profile: profilesMap.get(suggestion.user_id)
-      }));
+      const swipedUserIds = new Set(swipedUsers?.map(s => s.target_user_id) || []);
+      const userInterests = userProfile?.interests || [];
 
-      setSuggestions(enrichedSuggestions);
+      // Calculate compatibility and filter
+      const scoredProfiles = profilesData
+        .filter(profile => !swipedUserIds.has(profile.id))
+        .map(profile => {
+          const commonInterests = userInterests.filter(interest => 
+            profile.interests?.includes(interest)
+          ).length;
+          
+          const totalInterests = Math.max(
+            userInterests.length + (profile.interests?.length || 0),
+            1
+          );
+          
+          const compatibilityScore = (commonInterests / totalInterests) * 0.6 + 
+            (profile.last_active && new Date(profile.last_active) > new Date(Date.now() - 24 * 60 * 60 * 1000) ? 0.4 : 0.2);
+
+          return {
+            user_id: profile.id,
+            compatibility_score: compatibilityScore,
+            common_interests: commonInterests,
+            activity_score: profile.last_active && new Date(profile.last_active) > new Date(Date.now() - 24 * 60 * 60 * 1000) ? 1.0 : 0.5,
+            profile
+          };
+        })
+        .sort((a, b) => b.compatibility_score - a.compatibility_score)
+        .slice(0, limit);
+
+      setSuggestions(scoredProfiles);
     } catch (error) {
       console.error('Error getting match suggestions:', error);
     } finally {

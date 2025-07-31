@@ -12,11 +12,13 @@ import {
   MapPin, 
   Settings,
   CheckCircle,
-  AlertCircle 
+  AlertCircle,
+  Edit
 } from 'lucide-react';
 
 interface ProfileCompletionProps {
   onEditProfile: () => void;
+  onNotificationSettings?: () => void;
 }
 
 interface CompletionItem {
@@ -27,7 +29,7 @@ interface CompletionItem {
   description: string;
 }
 
-export const ProfileCompletion = ({ onEditProfile }: ProfileCompletionProps) => {
+export const ProfileCompletion = ({ onEditProfile, onNotificationSettings }: ProfileCompletionProps) => {
   const { user } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -204,14 +206,27 @@ export const ProfileCompletion = ({ onEditProfile }: ProfileCompletionProps) => 
             })}
           </div>
 
-          {/* Action Button */}
-          <Button 
-            onClick={onEditProfile} 
-            className="w-full"
-            size="lg"
-          >
-            {completionPercentage === 100 ? 'Edit Profile' : 'Complete Profile'}
-          </Button>
+          {/* Action Buttons */}
+          <div className="flex gap-3">
+            <Button 
+              variant="outline" 
+              onClick={onEditProfile}
+              className="flex-1"
+            >
+              <Edit className="w-4 h-4 mr-2" />
+              Edit Profile
+            </Button>
+            {onNotificationSettings && (
+              <Button 
+                variant="outline" 
+                onClick={onNotificationSettings}
+                className="flex-1"
+              >
+                <Settings className="w-4 h-4 mr-2" />
+                Notifications
+              </Button>
+            )}
+          </div>
 
           {/* Tips */}
           {completionPercentage < 100 && (

@@ -3,6 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { usePresence } from '@/hooks/usePresence';
 import { useActivityTracker } from '@/hooks/useActivityTracker';
 import { useChat } from '@/hooks/useChat';
+import { useProfileViews } from '@/hooks/useProfileViews';
 import { Button } from '@/components/ui/button';
 import { SupabaseFeed } from '@/components/feed/SupabaseFeed';
 import { SwipeInterface } from '@/components/swipe/SwipeInterface';
@@ -12,16 +13,20 @@ import { ProfileEdit } from '@/components/profile/ProfileEdit';
 import { ProfileCompletion } from '@/components/profile/ProfileCompletion';
 import { ConversationList } from '@/components/chat/ConversationList';
 import { ChatInterface } from '@/components/chat/ChatInterface';
-import { LogOut, Heart, Users, Layers, Star, User, MessageCircle, Settings, Search } from 'lucide-react';
+import { StoriesInterface } from '@/components/stories/StoriesInterface';
+import { ProfileViewsTracker } from '@/components/social/ProfileViewsTracker';
+import { NotificationSettings } from '@/components/notifications/NotificationSettings';
+import { LogOut, Heart, Users, Layers, Star, User, MessageCircle, Settings, Search, Camera, TrendingUp, Eye } from 'lucide-react';
 import { useAdminCheck } from '@/hooks/useAdminCheck';
 
-type ViewMode = 'feed' | 'discover' | 'matches' | 'profile' | 'editProfile' | 'chat' | 'chatInterface';
+type ViewMode = 'feed' | 'discover' | 'stories' | 'insights' | 'matches' | 'profile' | 'editProfile' | 'notifications' | 'chat' | 'chatInterface';
 
 const Index = () => {
   const { user, signOut } = useAuth();
   const { updatePresence } = usePresence();
   const { dailyStats } = useActivityTracker();
   const { isAdmin } = useAdminCheck();
+  const { trackProfileView } = useProfileViews();
   const [currentView, setCurrentView] = useState<ViewMode>('feed');
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const { createConversation } = useChat();
@@ -57,6 +62,10 @@ const Index = () => {
         return <SupabaseFeed />;
       case 'discover':
         return <SwipeInterface />;
+      case 'stories':
+        return <StoriesInterface />;
+      case 'insights':
+        return <ProfileViewsTracker />;
       case 'matches':
         return <MatchesList onStartChat={handleStartChat} />;
       case 'chat':
@@ -69,16 +78,23 @@ const Index = () => {
           />
         ) : null;
       case 'profile':
-        return <ProfileCompletion onEditProfile={() => setCurrentView('editProfile')} />;
+        return (
+          <ProfileCompletion 
+            onEditProfile={() => setCurrentView('editProfile')}
+            onNotificationSettings={() => setCurrentView('notifications')}
+          />
+        );
       case 'editProfile':
         return <ProfileEdit onBack={() => setCurrentView('profile')} />;
+      case 'notifications':
+        return <NotificationSettings />;
       default:
         return <SupabaseFeed />;
     }
   };
 
-  // Don't render navigation for edit profile and chat interface views
-  if (currentView === 'editProfile' || currentView === 'chatInterface') {
+  // Don't render navigation for edit profile, notifications, and chat interface views
+  if (currentView === 'editProfile' || currentView === 'chatInterface' || currentView === 'notifications') {
     return renderContent();
   }
 
@@ -155,6 +171,16 @@ const Index = () => {
               <Search className="w-5 h-5" />
               <span className="text-xs">Discover</span>
             </Button>
+
+            <Button
+              variant={currentView === 'stories' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setCurrentView('stories')}
+              className="flex flex-col items-center gap-1 h-auto py-2 px-3"
+            >
+              <Camera className="w-5 h-5" />
+              <span className="text-xs">Stories</span>
+            </Button>
             
             <Button
               variant={currentView === 'matches' ? 'default' : 'ghost'}
@@ -174,6 +200,16 @@ const Index = () => {
             >
               <MessageCircle className="w-5 h-5" />
               <span className="text-xs">Chat</span>
+            </Button>
+
+            <Button
+              variant={currentView === 'insights' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setCurrentView('insights')}
+              className="flex flex-col items-center gap-1 h-auto py-2 px-3"
+            >
+              <TrendingUp className="w-5 h-5" />
+              <span className="text-xs">Insights</span>
             </Button>
             
             <Button
