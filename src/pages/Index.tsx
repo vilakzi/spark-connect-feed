@@ -5,7 +5,7 @@ import { useActivityTracker } from '@/hooks/useActivityTracker';
 import { useChat } from '@/hooks/useChat';
 import { useProfileViews } from '@/hooks/useProfileViews';
 import { Button } from '@/components/ui/button';
-import { SupabaseFeed } from '@/components/feed/SupabaseFeed';
+import { EnhancedFeed } from '@/components/feed/EnhancedFeed';
 import { SwipeInterface } from '@/components/swipe/SwipeInterface';
 import { MatchesList } from '@/components/matches/MatchesList';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
@@ -59,7 +59,7 @@ const Index = () => {
   const renderContent = () => {
     switch (currentView) {
       case 'feed':
-        return <SupabaseFeed />;
+        return <EnhancedFeed />;
       case 'discover':
         return <SwipeInterface />;
       case 'stories':
@@ -89,7 +89,7 @@ const Index = () => {
       case 'notifications':
         return <NotificationSettings />;
       default:
-        return <SupabaseFeed />;
+        return <EnhancedFeed />;
     }
   };
 
