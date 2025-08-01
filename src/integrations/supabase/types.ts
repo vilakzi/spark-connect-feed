@@ -364,6 +364,119 @@ export type Database = {
         }
         Relationships: []
       }
+      feed_analytics: {
+        Row: {
+          created_at: string
+          event_data: Json | null
+          event_type: string
+          id: string
+          post_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_data?: Json | null
+          event_type: string
+          id?: string
+          post_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_data?: Json | null
+          event_type?: string
+          id?: string
+          post_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feed_analytics_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "feed_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feed_posts: {
+        Row: {
+          comment_count: number | null
+          content: string | null
+          created_at: string
+          engagement_score: number | null
+          hashtags: string[] | null
+          id: string
+          is_draft: boolean | null
+          like_count: number | null
+          location: string | null
+          media_types: string[] | null
+          media_urls: string[] | null
+          mentions: string[] | null
+          metadata: Json | null
+          privacy_level: string | null
+          published_at: string | null
+          quality_score: number | null
+          scheduled_at: string | null
+          share_count: number | null
+          thumbnails: string[] | null
+          trending_score: number | null
+          updated_at: string
+          user_id: string
+          view_count: number | null
+        }
+        Insert: {
+          comment_count?: number | null
+          content?: string | null
+          created_at?: string
+          engagement_score?: number | null
+          hashtags?: string[] | null
+          id?: string
+          is_draft?: boolean | null
+          like_count?: number | null
+          location?: string | null
+          media_types?: string[] | null
+          media_urls?: string[] | null
+          mentions?: string[] | null
+          metadata?: Json | null
+          privacy_level?: string | null
+          published_at?: string | null
+          quality_score?: number | null
+          scheduled_at?: string | null
+          share_count?: number | null
+          thumbnails?: string[] | null
+          trending_score?: number | null
+          updated_at?: string
+          user_id: string
+          view_count?: number | null
+        }
+        Update: {
+          comment_count?: number | null
+          content?: string | null
+          created_at?: string
+          engagement_score?: number | null
+          hashtags?: string[] | null
+          id?: string
+          is_draft?: boolean | null
+          like_count?: number | null
+          location?: string | null
+          media_types?: string[] | null
+          media_urls?: string[] | null
+          mentions?: string[] | null
+          metadata?: Json | null
+          privacy_level?: string | null
+          published_at?: string | null
+          quality_score?: number | null
+          scheduled_at?: string | null
+          share_count?: number | null
+          thumbnails?: string[] | null
+          trending_score?: number | null
+          updated_at?: string
+          user_id?: string
+          view_count?: number | null
+        }
+        Relationships: []
+      }
       matches: {
         Row: {
           created_at: string
@@ -1068,6 +1181,80 @@ export type Database = {
         }
         Relationships: []
       }
+      user_feed_preferences: {
+        Row: {
+          content_interests: string[] | null
+          created_at: string
+          diversity_preference: number | null
+          freshness_preference: number | null
+          id: string
+          interaction_weights: Json | null
+          preferred_content_types: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content_interests?: string[] | null
+          created_at?: string
+          diversity_preference?: number | null
+          freshness_preference?: number | null
+          id?: string
+          interaction_weights?: Json | null
+          preferred_content_types?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content_interests?: string[] | null
+          created_at?: string
+          diversity_preference?: number | null
+          freshness_preference?: number | null
+          id?: string
+          interaction_weights?: Json | null
+          preferred_content_types?: string[] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_interactions: {
+        Row: {
+          created_at: string
+          duration: number | null
+          id: string
+          interaction_type: string
+          metadata: Json | null
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          duration?: number | null
+          id?: string
+          interaction_type: string
+          metadata?: Json | null
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          duration?: number | null
+          id?: string
+          interaction_type?: string
+          metadata?: Json | null
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_interactions_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "feed_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_preferences: {
         Row: {
           id: string
@@ -1287,6 +1474,27 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_personalized_feed: {
+        Args: {
+          user_id_param: string
+          limit_param?: number
+          offset_param?: number
+        }
+        Returns: {
+          post_id: string
+          content: string
+          media_urls: string[]
+          media_types: string[]
+          thumbnails: string[]
+          user_display_name: string
+          user_avatar: string
+          like_count: number
+          comment_count: number
+          share_count: number
+          created_at: string
+          relevance_score: number
+        }[]
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -1335,8 +1543,22 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      track_user_interaction: {
+        Args: {
+          p_user_id: string
+          p_post_id: string
+          p_interaction_type: string
+          p_duration?: number
+          p_metadata?: Json
+        }
+        Returns: undefined
+      }
       unpromote_admin_content: {
         Args: { content_id: string }
+        Returns: undefined
+      }
+      update_post_engagement_score: {
+        Args: { post_id_param: string }
         Returns: undefined
       }
     }
