@@ -1401,6 +1401,36 @@ export type Database = {
         }
         Relationships: []
       }
+      database_cleanup_metrics: {
+        Row: {
+          database_name: unknown | null
+          tables_with_dead_rows: number | null
+          total_database_size: string | null
+          total_dead_rows: number | null
+        }
+        Relationships: []
+      }
+      database_health_metrics: {
+        Row: {
+          database_name: unknown | null
+          expired_anonymous_users: number | null
+          inactive_users: number | null
+          tables_with_dead_rows: number | null
+          total_database_size: string | null
+          total_dead_rows: number | null
+        }
+        Relationships: []
+      }
+      index_improvement_recommendations: {
+        Row: {
+          current_indexes: string[] | null
+          estimated_improvement: string | null
+          recommended_at: string | null
+          recommended_index: string | null
+          table_name: string | null
+        }
+        Relationships: []
+      }
       new_joiners_feed: {
         Row: {
           age: number | null
@@ -1430,11 +1460,31 @@ export type Database = {
       }
     }
     Functions: {
+      check_database_health: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          issue_type: string
+          details: string
+          severity: string
+        }[]
+      }
       check_duplicate_content: {
         Args: { hash_value: string }
         Returns: boolean
       }
+      cleanup_anonymous_users: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      cleanup_dead_rows: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       cleanup_expired_matches: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      cleanup_old_logs: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
@@ -1538,6 +1588,15 @@ export type Database = {
       promote_to_admin: {
         Args: { _user_email: string }
         Returns: undefined
+      }
+      recommend_index_improvements: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          table_name: string
+          current_indexes: string[]
+          recommended_index: string
+          estimated_improvement: string
+        }[]
       }
       reset_daily_usage: {
         Args: Record<PropertyKey, never>
