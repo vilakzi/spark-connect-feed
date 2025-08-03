@@ -79,8 +79,8 @@ export const useEnhancedFeed = () => {
     return () => observer.disconnect();
   }, [user]);
 
-  // Fetch personalized feed
-  const fetchFeed = useCallback(async (page: number = 0, reset: boolean = false) => {
+  // Fetch personalized feed with enhanced error handling and retry logic
+  const fetchFeed = useCallback(async (page: number = 0, reset: boolean = false, retryCount: number = 0) => {
     if (!user || feedState.loading) return;
 
     setFeedState(prev => ({ 
@@ -95,7 +95,82 @@ export const useEnhancedFeed = () => {
         offset_param: page * 10
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching feed:', error);
+        
+        // Retry logic for temporary failures (but not for missing table errors)
+        if (retryCount < 3 && error.code !== '42P01') {
+          setTimeout(() => {
+            fetchFeed(page, reset, retryCount + 1);
+          }, Math.pow(2, retryCount) * 1000); // Exponential backoff
+          return;
+        }
+        
+        // Fallback: try to fetch directly from feed_posts table
+        try {
+          const { data: fallbackData, error: fallbackError } = await supabase
+            .from('feed_posts')
+            .select(`
+              id,
+              content,
+              media_urls,
+              media_types,
+              thumbnails,
+              like_count,
+              comment_count,
+              share_count,
+              created_at,
+              profiles!inner(
+                display_name,
+                profile_image_url
+              )
+            `)
+            .eq('is_draft', false)
+            .not('published_at', 'is', null)
+            .order('created_at', { ascending: false })
+            .range(page * 10, (page + 1) * 10 - 1);
+
+          if (fallbackError) {
+            throw fallbackError;
+          }
+
+          // Transform fallback data to match expected format
+          const transformedData = fallbackData?.map(post => ({
+            post_id: post.id,
+            content: post.content || '',
+            media_urls: post.media_urls || [],
+            media_types: post.media_types || [],
+            thumbnails: post.thumbnails || [],
+            user_display_name: post.profiles?.display_name || 'Unknown User',
+            user_avatar: post.profiles?.profile_image_url || '',
+            like_count: post.like_count || 0,
+            comment_count: post.comment_count || 0,
+            share_count: post.share_count || 0,
+            created_at: post.created_at,
+            relevance_score: 1.0
+          })) || [];
+
+          setFeedState(prev => ({
+            ...prev,
+            posts: reset ? transformedData : [...prev.posts, ...transformedData],
+            hasMore: transformedData.length === 10,
+            page: page,
+            loading: false
+          }));
+          
+          if (reset && transformedData.length === 0) {
+            toast({
+              title: "No posts available",
+              description: "Create your first post to get started!",
+            });
+          }
+          
+          return;
+        } catch (fallbackError) {
+          console.error('Fallback query failed:', fallbackError);
+          throw fallbackError;
+        }
+      }
 
       const newPosts = data || [];
       
@@ -107,11 +182,33 @@ export const useEnhancedFeed = () => {
         loading: false
       }));
 
+      if (reset && newPosts.length === 0) {
+        toast({
+          title: "No posts available",
+          description: "Create your first post to get started!",
+        });
+      }
+
     } catch (error) {
       console.error('Error fetching feed:', error);
+      
+      if (retryCount === 0) {
+        toast({
+          title: "Feed load error",
+          description: "Failed to load feed content. Retrying...",
+          variant: "destructive"
+        });
+        
+        // Try once more after a short delay
+        setTimeout(() => {
+          fetchFeed(page, reset, 1);
+        }, 2000);
+        return;
+      }
+      
       toast({
-        title: "Feed load error",
-        description: "Failed to load feed content. Please try again.",
+        title: "Feed unavailable",
+        description: "Unable to load feed. Please check your connection and try again.",
         variant: "destructive"
       });
       

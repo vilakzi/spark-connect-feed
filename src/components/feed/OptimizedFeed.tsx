@@ -243,17 +243,13 @@ export const OptimizedFeed = () => {
 
   const handleProfileLike = async (profileId: string) => {
     try {
-      await supabase.from('swipes').insert({
-        user_id: user?.id,
-        target_user_id: profileId,
-        liked: true
-      });
-
+      // Swipe functionality not implemented yet
+      console.log('Profile liked:', profileId);
       setFeedItems(prev => prev.filter(item => item.id !== `profile-${profileId}`));
       
       toast({
         title: "Profile liked!",
-        description: "You'll be notified if it's a match"
+        description: "Swipe feature coming soon"
       });
     } catch (error) {
       console.error('Error liking profile:', error);
@@ -262,12 +258,8 @@ export const OptimizedFeed = () => {
 
   const handleProfilePass = async (profileId: string) => {
     try {
-      await supabase.from('swipes').insert({
-        user_id: user?.id,
-        target_user_id: profileId,
-        liked: false
-      });
-
+      // Swipe functionality not implemented yet
+      console.log('Profile passed:', profileId);
       setFeedItems(prev => prev.filter(item => item.id !== `profile-${profileId}`));
     } catch (error) {
       console.error('Error passing profile:', error);

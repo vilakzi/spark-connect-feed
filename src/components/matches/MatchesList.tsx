@@ -38,65 +38,9 @@ export const MatchesList = ({ onStartChat }: MatchesListProps) => {
 
     const fetchMatches = async () => {
       try {
-        // First get the matches
-        const { data: matchData, error } = await supabase
-          .from('matches')
-          .select('*')
-          .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`)
-          .order('created_at', { ascending: false });
-
-        if (error) {
-          console.error('Error fetching matches:', error);
-          toast({
-            title: "Error loading matches",
-            description: "Please try again later",
-            variant: "destructive"
-          });
-          return;
-        }
-
-        if (!matchData || matchData.length === 0) {
-          setMatches([]);
-          return;
-        }
-
-        // Get unique user IDs to fetch profile data
-        const userIds = new Set<string>();
-        matchData.forEach(match => {
-          if (match.user1_id !== user.id) userIds.add(match.user1_id);
-          if (match.user2_id !== user.id) userIds.add(match.user2_id);
-        });
-
-        // Fetch profiles for these users
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('id, display_name, profile_image_url, bio, age')
-          .in('id', Array.from(userIds));
-
-        if (profileError) {
-          console.error('Error fetching profiles:', profileError);
-          return;
-        }
-
-        // Create a map of profiles for quick lookup
-        const profileMap = new Map();
-        profileData?.forEach(profile => {
-          profileMap.set(profile.id, profile);
-        });
-
-        // Transform data to include the matched user info
-        const transformedMatches = matchData.map(match => {
-          const isUser1 = match.user1_id === user.id;
-          const matchedUserId = isUser1 ? match.user2_id : match.user1_id;
-          const matchedUser = profileMap.get(matchedUserId);
-          
-          return {
-            ...match,
-            matched_user: matchedUser
-          };
-        });
-
-        setMatches(transformedMatches);
+        // Matches functionality not implemented yet - return empty array
+        console.log('Matches feature coming soon');
+        setMatches([]);
       } catch (error) {
         console.error('Error:', error);
       } finally {
@@ -106,29 +50,9 @@ export const MatchesList = ({ onStartChat }: MatchesListProps) => {
 
     fetchMatches();
 
-    // Set up real-time subscription for new matches
-    const channel = supabase
-      .channel('matches-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'matches',
-          filter: `or(user1_id.eq.${user.id},user2_id.eq.${user.id})`
-        },
-        () => {
-          fetchMatches();
-          toast({
-            title: "New Match! 🎉",
-            description: "You have a new connection!"
-          });
-        }
-      )
-      .subscribe();
-
+    // Real-time updates will be implemented when matches table is created
     return () => {
-      supabase.removeChannel(channel);
+      // Cleanup placeholder
     };
   }, [user, toast]);
 
