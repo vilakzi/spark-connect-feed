@@ -647,6 +647,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_engagement_scores: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       check_duplicate_content: {
         Args: { hash_value: string }
         Returns: boolean
