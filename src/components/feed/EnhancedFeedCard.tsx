@@ -67,29 +67,42 @@ export const EnhancedFeedCard: React.FC<EnhancedFeedCardProps> = ({
     }
   }, [setupViewTracking, post.post_id]);
 
-  // Video autoplay with intersection observer
+  // Video autoplay with intersection observer - debounced to prevent conflicts
   useEffect(() => {
     const currentVideo = videoRef.current;
     if (!currentVideo || !post.media_types[currentMediaIndex]?.startsWith('video/')) return;
 
+    let playTimeout: NodeJS.Timeout;
+    let pauseTimeout: NodeJS.Timeout;
+
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
+          // Clear any pending timeouts
+          clearTimeout(playTimeout);
+          clearTimeout(pauseTimeout);
+
           if (entry.isIntersecting && entry.intersectionRatio > 0.7) {
-            // Auto-play when 70% visible
-            currentVideo.play()
-              .then(() => {
-                setIsPlaying(true);
-                setShowPlayButton(false);
-              })
-              .catch(() => {
-                setShowPlayButton(true);
-              });
+            // Debounced auto-play when 70% visible
+            playTimeout = setTimeout(() => {
+              if (currentVideo && !currentVideo.paused) return; // Already playing
+              currentVideo.play()
+                .then(() => {
+                  setIsPlaying(true);
+                  setShowPlayButton(false);
+                })
+                .catch(() => {
+                  setShowPlayButton(true);
+                });
+            }, 300);
           } else if (entry.intersectionRatio < 0.3) {
-            // Pause when less than 30% visible
-            currentVideo.pause();
-            setIsPlaying(false);
-            setShowPlayButton(true);
+            // Debounced pause when less than 30% visible
+            pauseTimeout = setTimeout(() => {
+              if (currentVideo && currentVideo.paused) return; // Already paused
+              currentVideo.pause();
+              setIsPlaying(false);
+              setShowPlayButton(true);
+            }, 300);
           }
         });
       },
@@ -97,7 +110,11 @@ export const EnhancedFeedCard: React.FC<EnhancedFeedCardProps> = ({
     );
 
     observer.observe(currentVideo);
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      clearTimeout(playTimeout);
+      clearTimeout(pauseTimeout);
+    };
   }, [currentMediaIndex, post.media_types]);
 
   const togglePlay = useCallback(() => {
