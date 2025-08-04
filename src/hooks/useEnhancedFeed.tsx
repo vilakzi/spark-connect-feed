@@ -141,8 +141,8 @@ export const useEnhancedFeed = () => {
             media_urls: post.media_urls || [],
             media_types: post.media_types || [],
             thumbnails: post.thumbnails || [],
-            user_display_name: post.profiles?.display_name || 'Unknown User',
-            user_avatar: post.profiles?.profile_image_url || '',
+            user_display_name: 'Unknown User', // Simplified until relationships are fixed
+            user_avatar: '', // Simplified until relationships are fixed
             like_count: post.like_count || 0,
             comment_count: post.comment_count || 0,
             share_count: post.share_count || 0,

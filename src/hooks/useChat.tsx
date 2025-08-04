@@ -9,7 +9,7 @@ interface Message {
   sender_id: string;
   content: string;
   message_type: string;
-  read_at?: string;
+  is_read: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -90,7 +90,7 @@ export const useChat = () => {
             .select('*', { count: 'exact', head: true })
             .eq('conversation_id', conv.id)
             .neq('sender_id', user.id)
-            .is('read_at', null);
+            .eq('is_read', false);
 
           return {
             id: conv.id,
@@ -178,7 +178,7 @@ export const useChat = () => {
   const createConversation = useCallback(async (matchId: string) => {
     try {
       const { data, error } = await supabase.rpc('create_conversation_from_match', {
-        match_id: matchId
+        match_id_param: matchId
       });
 
       if (error) throw error;
@@ -221,10 +221,10 @@ export const useChat = () => {
     try {
       await supabase
         .from('messages')
-        .update({ read_at: new Date().toISOString() })
+        .update({ is_read: true })
         .eq('conversation_id', conversationId)
         .neq('sender_id', user.id)
-        .is('read_at', null);
+        .eq('is_read', false);
 
       // Update local state
       setConversations(prev => 
