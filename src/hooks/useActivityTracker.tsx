@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 
 interface ActivityData {
@@ -10,8 +10,23 @@ interface ActivityData {
   dailyGoal: number;
 }
 
+interface DailyStats {
+  swipes: number;
+  matches: number;
+  messages: number;
+  profileViews: number;
+  date: string;
+}
+
 export const useActivityTracker = () => {
   const { user } = useAuth();
+  const [dailyStats, setDailyStats] = useState<DailyStats>({
+    swipes: 0,
+    matches: 0,
+    messages: 0,
+    profileViews: 0,
+    date: new Date().toISOString().split('T')[0]
+  });
 
   const trackActivity = useCallback(async (activityType: string, metadata: any = {}) => {
     if (!user) return;
@@ -19,10 +34,18 @@ export const useActivityTracker = () => {
     try {
       // Activity tracking not implemented yet
       console.log('Activity tracking coming soon:', activityType, metadata);
+      
+      // Update local stats for demo purposes
+      if (activityType in dailyStats && typeof dailyStats[activityType as keyof DailyStats] === 'number') {
+        setDailyStats(prev => ({
+          ...prev,
+          [activityType]: (prev[activityType as keyof DailyStats] as number) + 1
+        }));
+      }
     } catch (error) {
       console.error('Error tracking activity:', error);
     }
-  }, [user]);
+  }, [user, dailyStats]);
 
   const getActivityData = useCallback(async (): Promise<ActivityData> => {
     if (!user) {
@@ -41,10 +64,10 @@ export const useActivityTracker = () => {
       console.log('Activity data retrieval coming soon');
       
       return {
-        profileScrolls: 0,
-        swipeCount: 0,
-        matchCount: 0,
-        messagesSent: 0,
+        profileScrolls: dailyStats.profileViews,
+        swipeCount: dailyStats.swipes,
+        matchCount: dailyStats.matches,
+        messagesSent: dailyStats.messages,
         timeSpent: 0,
         dailyGoal: 10
       };
@@ -59,7 +82,7 @@ export const useActivityTracker = () => {
         dailyGoal: 10
       };
     }
-  }, [user]);
+  }, [user, dailyStats]);
 
   const updateDailyGoal = useCallback(async (newGoal: number) => {
     if (!user) return;
@@ -72,6 +95,7 @@ export const useActivityTracker = () => {
   }, [user]);
 
   return {
+    dailyStats,
     trackActivity,
     getActivityData,
     updateDailyGoal
