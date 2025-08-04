@@ -128,8 +128,8 @@ export const NotificationSettings = () => {
                 </Button>
               )}
               <Switch
-                checked={preferences.push_enabled}
-                onCheckedChange={() => handleToggle('push_enabled')}
+                checked={preferences.pushEnabled || false}
+                onCheckedChange={() => handleToggle('pushEnabled')}
                 disabled={!pushSupported}
               />
             </div>
@@ -143,8 +143,8 @@ export const NotificationSettings = () => {
               </p>
             </div>
             <Switch
-              checked={preferences.email_enabled}
-              onCheckedChange={() => handleToggle('email_enabled')}
+              checked={preferences.emailEnabled || false}
+              onCheckedChange={() => handleToggle('emailEnabled')}
             />
           </div>
         </CardContent>

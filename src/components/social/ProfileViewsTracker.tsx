@@ -24,7 +24,7 @@ export const ProfileViewsTracker = () => {
   };
 
   useEffect(() => {
-    getMatchSuggestions(5);
+    getMatchSuggestions();
   }, []);
 
   return (

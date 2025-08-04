@@ -208,6 +208,36 @@ export type Database = {
           },
         ]
       }
+      conversations: {
+        Row: {
+          created_at: string
+          id: string
+          last_message_at: string | null
+          last_message_id: string | null
+          participant_one_id: string
+          participant_two_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_message_at?: string | null
+          last_message_id?: string | null
+          participant_one_id: string
+          participant_two_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_message_at?: string | null
+          last_message_id?: string | null
+          participant_one_id?: string
+          participant_two_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       feed_analytics: {
         Row: {
           created_at: string
@@ -320,6 +350,74 @@ export type Database = {
           view_count?: number | null
         }
         Relationships: []
+      }
+      matches: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          id: string
+          is_super_like: boolean
+          user_one_id: string
+          user_two_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_super_like?: boolean
+          user_one_id: string
+          user_two_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_super_like?: boolean
+          user_one_id?: string
+          user_two_id?: string
+        }
+        Relationships: []
+      }
+      messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          is_read: boolean
+          message_type: string
+          sender_id: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message_type?: string
+          sender_id: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message_type?: string
+          sender_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notifications: {
         Row: {
@@ -475,6 +573,27 @@ export type Database = {
           },
         ]
       }
+      profile_views: {
+        Row: {
+          created_at: string
+          id: string
+          viewed_id: string
+          viewer_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          viewed_id: string
+          viewer_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          viewed_id?: string
+          viewer_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           age: number | null
@@ -543,6 +662,38 @@ export type Database = {
           whatsapp?: string | null
         }
         Relationships: []
+      }
+      typing_indicators: {
+        Row: {
+          conversation_id: string
+          id: string
+          is_typing: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          conversation_id: string
+          id?: string
+          is_typing?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string
+          id?: string
+          is_typing?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "typing_indicators_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_feed_preferences: {
         Row: {
@@ -654,6 +805,10 @@ export type Database = {
       check_duplicate_content: {
         Args: { hash_value: string }
         Returns: boolean
+      }
+      create_conversation_from_match: {
+        Args: { match_id_param: string }
+        Returns: string
       }
       ensure_user_profile: {
         Args: { profile_user_id: string }
