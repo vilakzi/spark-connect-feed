@@ -1358,6 +1358,10 @@ export type Database = {
         Args: { hash_value: string }
         Returns: boolean
       }
+      cleanup_dead_rows: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       create_conversation_from_match: {
         Args: { match_id_param: string }
         Returns: string
