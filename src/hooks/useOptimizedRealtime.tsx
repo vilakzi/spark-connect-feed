@@ -41,7 +41,7 @@ export const useOptimizedRealtimeSubscriptions = (): SubscriptionManager => {
   // Cleanup on unmount or user change
   useEffect(() => {
     return cleanup;
-  }, [cleanup, user?.id]);
+  }, [cleanup]);
 
   return {
     subscriptions: subscriptionsRef.current,
@@ -121,7 +121,7 @@ export const useOptimizedPresence = () => {
     } catch (error) {
       console.error('Error updating presence:', error);
     }
-  }, [user, addSubscription]);
+  }, [user?.id, addSubscription]);
 
   const startPresenceTracking = useCallback(() => {
     if (!user) return;
@@ -166,7 +166,7 @@ export const useOptimizedPresence = () => {
       updatePresence('offline');
       removeSubscription(`presence_${user.id}`);
     };
-  }, [user, updatePresence, removeSubscription]);
+  }, [user?.id, updatePresence, removeSubscription]);
 
   return {
     updatePresence,
@@ -234,7 +234,7 @@ export const useOptimizedChat = () => {
     } catch (error) {
       console.error('Error sending typing indicator:', error);
     }
-  }, [user]);
+  }, [user?.id]);
 
   return {
     getOrCreateChatConnection,

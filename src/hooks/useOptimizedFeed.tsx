@@ -102,7 +102,7 @@ export const useOptimizedFeed = () => {
         hasMore: transformedPosts.length === POSTS_PER_PAGE
       };
     }
-  }, [user]);
+  }, [user?.id]);
 
   // Infinite query for feed
   const {
@@ -192,7 +192,7 @@ export const useOptimizedFeed = () => {
         variant: "destructive"
       });
     }
-  }, [user, queryClient, toast]);
+  }, [user?.id, queryClient, toast]);
 
   // Track post view
   const trackView = useCallback(async (postId: string, duration: number = 3) => {
@@ -208,7 +208,7 @@ export const useOptimizedFeed = () => {
     } catch (error) {
       console.error('Error tracking view:', error);
     }
-  }, [user]);
+  }, [user?.id]);
 
   // Share post
   const sharePost = useCallback(async (post: FeedPost) => {
@@ -254,7 +254,7 @@ export const useOptimizedFeed = () => {
     } catch (error) {
       console.error('Error sharing post:', error);
     }
-  }, [user, queryClient, toast]);
+  }, [user?.id, queryClient, toast]);
 
   // Update preferences
   const updatePreferences = useCallback(async (newPreferences: {
@@ -292,7 +292,7 @@ export const useOptimizedFeed = () => {
         variant: "destructive"
       });
     }
-  }, [user, queryClient, toast]);
+  }, [user?.id, queryClient, toast]);
 
   // Refresh feed
   const refreshFeed = useCallback(() => {
