@@ -421,10 +421,10 @@ export const EnhancedFeedCard: React.FC<EnhancedFeedCardProps> = ({
         </CardContent>
       </Card>
 
-      {/* Fullscreen Video Modal */}
+      {/* Enhanced Fullscreen Video Modal */}
       {isFullscreen && isVideo && (
         <Dialog open={isFullscreen} onOpenChange={closeFullscreen}>
-          <DialogContent className="max-w-[100vw] max-h-[100vh] p-0 bg-black border-0">
+          <DialogContent className="max-w-[100vw] max-h-[100vh] p-0 bg-black border-0 data-[state=open]:duration-300">
             <div className="relative w-screen h-screen flex items-center justify-center">
               <video
                 ref={fullscreenVideoRef}
@@ -439,14 +439,41 @@ export const EnhancedFeedCard: React.FC<EnhancedFeedCardProps> = ({
                   closeFullscreen();
                 }}
               />
-              <Button
-                variant="ghost"
-                size="lg"
-                onClick={closeFullscreen}
-                className="absolute top-4 right-4 text-white hover:bg-white/20 z-50"
-              >
-                <X className="w-8 h-8" />
-              </Button>
+              
+              {/* Enhanced Exit Button - Fixed positioning and visibility */}
+              <div className="absolute top-4 right-4 z-[9999]">
+                <Button
+                  variant="secondary"
+                  size="lg"
+                  onClick={closeFullscreen}
+                  className="bg-black/60 hover:bg-black/80 text-white border-white/20 backdrop-blur-sm rounded-full w-12 h-12 p-0 shadow-lg transition-all duration-200 hover:scale-110"
+                >
+                  <X className="w-6 h-6" />
+                </Button>
+              </div>
+
+              {/* Multiple Exit Methods */}
+              <div 
+                className="absolute inset-0 cursor-pointer"
+                onClick={(e) => {
+                  // Only close if clicking outside the video
+                  if (e.target === e.currentTarget) {
+                    closeFullscreen();
+                  }
+                }}
+              />
+              
+              {/* Escape key handler */}
+              <div
+                className="sr-only"
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    closeFullscreen();
+                  }
+                }}
+                tabIndex={0}
+                autoFocus
+              />
             </div>
           </DialogContent>
         </Dialog>

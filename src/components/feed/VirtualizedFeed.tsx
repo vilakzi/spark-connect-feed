@@ -2,9 +2,9 @@ import React, { useRef, useMemo, useCallback } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, Plus, Settings } from 'lucide-react';
-import { VirtualizedFeedCard } from './VirtualizedFeedCard';
+import { RealtimeFeedCard } from './RealtimeFeedCard';
 import { PostComposer } from './PostComposer';
-import { useOptimizedFeed } from '@/hooks/useOptimizedFeed';
+import { useRealtimeFeed } from '@/hooks/useRealtimeFeed';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useState, useEffect } from 'react';
 
@@ -22,8 +22,9 @@ export const VirtualizedFeed = () => {
     sharePost,
     trackView,
     refreshFeed,
-    prefetchNextPage
-  } = useOptimizedFeed();
+    prefetchNextPage,
+    backgroundContentCount
+  } = useRealtimeFeed();
 
   const [showComposer, setShowComposer] = useState(false);
   const [showPreferences, setShowPreferences] = useState(false);
@@ -140,15 +141,24 @@ export const VirtualizedFeed = () => {
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-md mx-auto">
-        {/* Sticky Header */}
-        <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-sm border-b border-border p-4">
+        {/* Enhanced Sticky Header with Live Updates */}
+        <div className="sticky top-0 z-40 bg-background/90 backdrop-blur-md border-b border-border p-4 shadow-sm">
           <div className="flex items-center justify-between">
-            <h1 className="text-xl font-bold">Feed</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-xl font-bold">Feed</h1>
+              {backgroundContentCount > 0 && (
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-accent rounded-full animate-pulse" />
+                  <span className="text-xs text-muted-foreground">Live</span>
+                </div>
+              )}
+            </div>
             <div className="flex gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setShowPreferences(true)}
+                className="hover:bg-secondary/80 transition-colors"
               >
                 <Settings className="w-4 h-4" />
               </Button>
@@ -157,13 +167,14 @@ export const VirtualizedFeed = () => {
                 size="sm"
                 onClick={handleRefresh}
                 disabled={isLoading}
+                className="hover:bg-secondary/80 transition-colors"
               >
                 <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
               </Button>
               <Button
                 size="sm"
                 onClick={() => setShowComposer(true)}
-                className="gap-2"
+                className="gap-2 bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity"
               >
                 <Plus className="w-4 h-4" />
                 Post
@@ -217,11 +228,12 @@ export const VirtualizedFeed = () => {
                         <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                       </div>
                     ) : (
-                      <VirtualizedFeedCard
+                      <RealtimeFeedCard
                         post={item}
                         onLike={likePost}
                         onShare={sharePost}
                         onView={trackView}
+                        isLast={virtualItem.index === items.length - 1}
                       />
                     )}
                   </div>
