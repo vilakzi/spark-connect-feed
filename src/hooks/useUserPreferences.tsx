@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 
 interface UserPreferences {
   min_age: number;
@@ -28,11 +29,30 @@ export const useUserPreferences = () => {
 
     const loadPreferences = async () => {
       try {
-        // For now, just use default preferences since table doesn't exist in types
-        console.log('Would load preferences for user:', user.id);
-        setPreferences(DEFAULT_PREFERENCES);
+        const { data, error } = await supabase
+          .from('user_preferences')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+
+        if (error && error.code !== 'PGRST116') { // PGRST116 = not found
+          throw error;
+        }
+
+        if (data) {
+          setPreferences({
+            min_age: data.min_age,
+            max_age: data.max_age,
+            max_distance: data.max_distance,
+            show_me: data.show_me as 'men' | 'women' | 'everyone',
+            location_enabled: data.location_enabled
+          });
+        } else {
+          setPreferences(DEFAULT_PREFERENCES);
+        }
       } catch (error) {
-        console.error('Error:', error);
+        console.error('Error loading preferences:', error);
+        setPreferences(DEFAULT_PREFERENCES);
       } finally {
         setLoading(false);
       }
@@ -48,12 +68,24 @@ export const useUserPreferences = () => {
     try {
       const newPreferences = { ...preferences, ...updates };
       
-      // For now, just update local state since table doesn't exist in types
-      console.log('Would update preferences:', newPreferences);
+      const { error } = await supabase
+        .from('user_preferences')
+        .upsert({
+          user_id: user.id,
+          min_age: newPreferences.min_age,
+          max_age: newPreferences.max_age,
+          max_distance: newPreferences.max_distance,
+          show_me: newPreferences.show_me,
+          location_enabled: newPreferences.location_enabled,
+          updated_at: new Date().toISOString()
+        });
+
+      if (error) throw error;
+      
       setPreferences(newPreferences);
       return true;
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error updating preferences:', error);
       return false;
     } finally {
       setSaving(false);

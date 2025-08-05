@@ -25,10 +25,34 @@ export const useProfileViews = () => {
 
     try {
       setLoading(true);
-      // For now, return empty array since tables need to be regenerated in types
-      setProfileViews([]);
+      const { data, error } = await supabase
+        .from('profile_views')
+        .select(`
+          *,
+          profiles!profile_views_viewer_id_fkey (
+            display_name,
+            profile_image_url,
+            age
+          )
+        `)
+        .eq('viewed_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const viewsWithViewer = data?.map(view => ({
+        ...view,
+        viewer: {
+          display_name: (view as any).profiles?.display_name || 'Unknown',
+          profile_image_url: (view as any).profiles?.profile_image_url,
+          age: (view as any).profiles?.age
+        }
+      })) || [];
+
+      setProfileViews(viewsWithViewer);
     } catch (error) {
       console.error('Error fetching profile views:', error);
+      setProfileViews([]);
     } finally {
       setLoading(false);
     }
@@ -39,8 +63,17 @@ export const useProfileViews = () => {
     if (!user || user.id === viewedUserId) return;
 
     try {
-      // For now, just log since tables need to be regenerated in types
-      console.log('Would track profile view:', { viewedUserId });
+      const { error } = await supabase
+        .from('profile_views')
+        .insert({
+          viewer_id: user.id,
+          viewed_id: viewedUserId
+        });
+
+      // Ignore duplicate view errors (same user viewing same profile)
+      if (error && !error.message.includes('duplicate')) {
+        throw error;
+      }
     } catch (error) {
       console.error('Error tracking profile view:', error);
     }

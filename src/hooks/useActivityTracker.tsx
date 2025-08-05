@@ -1,21 +1,21 @@
 import { useCallback, useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ActivityData {
-  profileScrolls: number;
-  swipeCount: number;
-  matchCount: number;
-  messagesSent: number;
-  timeSpent: number;
-  dailyGoal: number;
+  total_swipes: number;
+  total_matches: number;
+  total_messages: number;
+  total_profile_views: number;
+  weekly_activity: any[];
+  popular_times: any[];
 }
 
 interface DailyStats {
   swipes: number;
   matches: number;
   messages: number;
-  profileViews: number;
-  date: string;
+  goal: number;
 }
 
 export const useActivityTracker = () => {
@@ -24,22 +24,81 @@ export const useActivityTracker = () => {
     swipes: 0,
     matches: 0,
     messages: 0,
-    profileViews: 0,
-    date: new Date().toISOString().split('T')[0]
+    goal: 10
   });
+
+  useEffect(() => {
+    if (user) {
+      loadDailyStats();
+    }
+  }, [user]);
+
+  const loadDailyStats = async () => {
+    if (!user) return;
+
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const { data, error } = await supabase
+        .from('daily_stats')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('date', today)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
+
+      if (data) {
+        setDailyStats({
+          swipes: data.swipes,
+          matches: data.matches,
+          messages: data.messages,
+          goal: data.goal
+        });
+      }
+    } catch (error) {
+      console.error('Error loading daily stats:', error);
+    }
+  };
 
   const trackActivity = useCallback(async (activityType: string, metadata: any = {}) => {
     if (!user) return;
     
     try {
-      // Activity tracking not implemented yet
-      console.log('Activity tracking coming soon:', activityType, metadata);
-      
-      // Update local stats for demo purposes
-      if (activityType in dailyStats && typeof dailyStats[activityType as keyof DailyStats] === 'number') {
+      // Track the activity
+      const { error: activityError } = await supabase
+        .from('activity_tracking')
+        .insert({
+          user_id: user.id,
+          activity_type: activityType,
+          metadata: metadata || {}
+        });
+
+      if (activityError) throw activityError;
+
+      // Update daily stats
+      const today = new Date().toISOString().split('T')[0];
+      const updateField = activityType === 'swipe' ? 'swipes' : 
+                         activityType === 'match' ? 'matches' : 
+                         activityType === 'message' ? 'messages' : null;
+
+      if (updateField) {
+        const { error: statsError } = await supabase
+          .from('daily_stats')
+          .upsert({
+            user_id: user.id,
+            date: today,
+            [updateField]: dailyStats[updateField as keyof DailyStats] + 1,
+            goal: dailyStats.goal
+          });
+
+        if (statsError) throw statsError;
+
+        // Update local state
         setDailyStats(prev => ({
           ...prev,
-          [activityType]: (prev[activityType as keyof DailyStats] as number) + 1
+          [updateField]: prev[updateField as keyof DailyStats] + 1
         }));
       }
     } catch (error) {
@@ -50,49 +109,91 @@ export const useActivityTracker = () => {
   const getActivityData = useCallback(async (): Promise<ActivityData> => {
     if (!user) {
       return {
-        profileScrolls: 0,
-        swipeCount: 0,
-        matchCount: 0,
-        messagesSent: 0,
-        timeSpent: 0,
-        dailyGoal: 10
+        total_swipes: 0,
+        total_matches: 0,
+        total_messages: 0,
+        total_profile_views: 0,
+        weekly_activity: [],
+        popular_times: []
       };
     }
-    
+
     try {
-      // Activity data retrieval not implemented yet
-      console.log('Activity data retrieval coming soon');
+      // Get total stats from daily_stats table
+      const { data: dailyData, error: dailyError } = await supabase
+        .from('daily_stats')
+        .select('swipes, matches, messages')
+        .eq('user_id', user.id);
+
+      if (dailyError) throw dailyError;
+
+      const totals = dailyData?.reduce((acc, day) => ({
+        swipes: acc.swipes + day.swipes,
+        matches: acc.matches + day.matches,
+        messages: acc.messages + day.messages
+      }), { swipes: 0, matches: 0, messages: 0 }) || { swipes: 0, matches: 0, messages: 0 };
+
+      // Get profile views count
+      const { count: profileViews } = await supabase
+        .from('profile_views')
+        .select('*', { count: 'exact', head: true })
+        .eq('viewed_id', user.id);
+
+      // Get weekly activity (last 7 days)
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 7);
       
+      const { data: weeklyData } = await supabase
+        .from('daily_stats')
+        .select('date, swipes, matches, messages')
+        .eq('user_id', user.id)
+        .gte('date', weekAgo.toISOString().split('T')[0])
+        .order('date');
+
       return {
-        profileScrolls: dailyStats.profileViews,
-        swipeCount: dailyStats.swipes,
-        matchCount: dailyStats.matches,
-        messagesSent: dailyStats.messages,
-        timeSpent: 0,
-        dailyGoal: 10
+        total_swipes: totals.swipes,
+        total_matches: totals.matches,
+        total_messages: totals.messages,
+        total_profile_views: profileViews || 0,
+        weekly_activity: weeklyData || [],
+        popular_times: [] // Would need hourly tracking for this
       };
     } catch (error) {
       console.error('Error getting activity data:', error);
       return {
-        profileScrolls: 0,
-        swipeCount: 0,
-        matchCount: 0,
-        messagesSent: 0,
-        timeSpent: 0,
-        dailyGoal: 10
+        total_swipes: 0,
+        total_matches: 0,
+        total_messages: 0,
+        total_profile_views: 0,
+        weekly_activity: [],
+        popular_times: []
       };
     }
-  }, [user, dailyStats]);
+  }, [user]);
 
   const updateDailyGoal = useCallback(async (newGoal: number) => {
     if (!user) return;
-    
+
     try {
-      console.log('Daily goal update coming soon:', newGoal);
+      const today = new Date().toISOString().split('T')[0];
+      const { error } = await supabase
+        .from('daily_stats')
+        .upsert({
+          user_id: user.id,
+          date: today,
+          goal: newGoal,
+          swipes: dailyStats.swipes,
+          matches: dailyStats.matches,
+          messages: dailyStats.messages
+        });
+
+      if (error) throw error;
+
+      setDailyStats(prev => ({ ...prev, goal: newGoal }));
     } catch (error) {
       console.error('Error updating daily goal:', error);
     }
-  }, [user]);
+  }, [user, dailyStats]);
 
   return {
     dailyStats,
