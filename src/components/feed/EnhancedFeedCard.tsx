@@ -268,7 +268,11 @@ export const EnhancedFeedCard: React.FC<EnhancedFeedCardProps> = ({
           {/* Media */}
           {currentMedia && (
             <div 
-              className="relative aspect-square bg-card"
+              className="relative w-full bg-card"
+              style={{
+                aspectRatio: isVideo ? '16/9' : '1/1',
+                maxHeight: isVideo ? '70vh' : 'none'
+              }}
               onDoubleClick={handleDoubleClick}
             >
               {isVideo ? (
@@ -280,12 +284,22 @@ export const EnhancedFeedCard: React.FC<EnhancedFeedCardProps> = ({
                   muted={isMuted}
                   playsInline
                   onClick={togglePlay}
+                  onLoadStart={() => setShowPlayButton(true)}
+                  onCanPlay={() => console.log('Video ready to play')}
+                  onError={(e) => {
+                    console.error('Video error:', e);
+                    setShowPlayButton(true);
+                  }}
                 />
               ) : (
                 <img
                   src={currentMedia}
                   alt="Post content"
                   className="w-full h-full object-cover"
+                  onError={(e) => {
+                    console.error('Image failed to load:', e);
+                    e.currentTarget.style.display = 'none';
+                  }}
                 />
               )}
 
@@ -410,23 +424,28 @@ export const EnhancedFeedCard: React.FC<EnhancedFeedCardProps> = ({
       {/* Fullscreen Video Modal */}
       {isFullscreen && isVideo && (
         <Dialog open={isFullscreen} onOpenChange={closeFullscreen}>
-          <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-black/95">
-            <div className="relative w-full h-full flex items-center justify-center">
+          <DialogContent className="max-w-[100vw] max-h-[100vh] p-0 bg-black border-0">
+            <div className="relative w-screen h-screen flex items-center justify-center">
               <video
                 ref={fullscreenVideoRef}
                 src={currentMedia}
-                className="max-w-full max-h-full object-contain"
+                className="w-full h-full object-contain"
                 controls
                 autoPlay
                 loop
+                muted={isMuted}
+                onError={(e) => {
+                  console.error('Fullscreen video error:', e);
+                  closeFullscreen();
+                }}
               />
               <Button
                 variant="ghost"
-                size="sm"
+                size="lg"
                 onClick={closeFullscreen}
-                className="absolute top-4 right-4 text-white hover:bg-white/20"
+                className="absolute top-4 right-4 text-white hover:bg-white/20 z-50"
               >
-                <X className="w-6 h-6" />
+                <X className="w-8 h-8" />
               </Button>
             </div>
           </DialogContent>

@@ -81,12 +81,13 @@ export const useEnhancedFeed = () => {
 
   // Fetch personalized feed with enhanced error handling and retry logic
   const fetchFeed = useCallback(async (page: number = 0, reset: boolean = false, retryCount: number = 0) => {
-    if (!user || feedState.loading) return;
+    if (!user) return;
 
-    setFeedState(prev => ({ 
-      ...prev, 
-      loading: true 
-    }));
+    // Prevent concurrent requests
+    setFeedState(prev => {
+      if (prev.loading) return prev;
+      return { ...prev, loading: true };
+    });
 
     try {
       const { data, error } = await supabase.rpc('get_personalized_feed', {
@@ -217,15 +218,15 @@ export const useEnhancedFeed = () => {
         loading: false
       }));
     }
-  }, [user, feedState.loading]);
+  }, [user]);
 
-  // Infinite scroll setup
+  // Infinite scroll setup with loading guard
   useEffect(() => {
     if (!lastPostRef.current || feedState.loading || !feedState.hasMore) return;
 
     observerRef.current = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting) {
+        if (entries[0].isIntersecting && !feedState.loading) {
           fetchFeed(feedState.page + 1, false);
         }
       },
@@ -239,11 +240,11 @@ export const useEnhancedFeed = () => {
         observerRef.current.disconnect();
       }
     };
-  }, [fetchFeed, feedState.loading, feedState.hasMore, feedState.page]);
+  }, [fetchFeed, feedState.hasMore, feedState.page]);
 
-  // Initial load and real-time updates
+  // Initial load and real-time updates - only run once per user
   useEffect(() => {
-    if (user) {
+    if (user && feedState.posts.length === 0) {
       fetchFeed(0, true);
 
       // Set up real-time updates
@@ -290,7 +291,7 @@ export const useEnhancedFeed = () => {
         viewTimeouts.current.clear();
       };
     }
-  }, [user, fetchFeed]);
+  }, [user]);
 
   // User interactions
   const likePost = useCallback(async (postId: string) => {

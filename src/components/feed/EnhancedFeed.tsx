@@ -7,7 +7,7 @@ import { useEnhancedFeed } from '@/hooks/useEnhancedFeed';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export const EnhancedFeed = () => {
-  const { posts, loading, refreshFeed } = useEnhancedFeed();
+  const { posts, loading, refreshFeed, hasMore, lastPostRef } = useEnhancedFeed();
   const [showComposer, setShowComposer] = useState(false);
 
   if (loading && posts.length === 0) {
@@ -69,13 +69,32 @@ export const EnhancedFeed = () => {
               </Button>
             </div>
           ) : (
-            posts.map((post, index) => (
-              <EnhancedFeedCard
-                key={post.post_id}
-                post={post}
-                isLast={index === posts.length - 1}
-              />
-            ))
+            <>
+              {posts.map((post, index) => (
+                <EnhancedFeedCard
+                  key={post.post_id}
+                  post={post}
+                  isLast={index === posts.length - 1}
+                />
+              ))}
+              
+              {/* Loading indicator for infinite scroll */}
+              {loading && posts.length > 0 && (
+                <div className="flex justify-center py-4">
+                  <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                </div>
+              )}
+              
+              {/* End of feed indicator */}
+              {!hasMore && posts.length > 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>You've reached the end!</p>
+                </div>
+              )}
+              
+              {/* Last post ref for infinite scroll */}
+              <div ref={lastPostRef} className="h-4" />
+            </>
           )}
         </div>
 
