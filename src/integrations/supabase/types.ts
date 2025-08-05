@@ -140,6 +140,51 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_compatibility_analysis: {
+        Row: {
+          analysis_version: string | null
+          communication_style: Json | null
+          compatibility_score: number
+          created_at: string
+          id: string
+          interest_overlap: Json | null
+          lifestyle_compatibility: Json | null
+          personality_match: Json | null
+          prediction_confidence: number | null
+          updated_at: string
+          user_one_id: string
+          user_two_id: string
+        }
+        Insert: {
+          analysis_version?: string | null
+          communication_style?: Json | null
+          compatibility_score?: number
+          created_at?: string
+          id?: string
+          interest_overlap?: Json | null
+          lifestyle_compatibility?: Json | null
+          personality_match?: Json | null
+          prediction_confidence?: number | null
+          updated_at?: string
+          user_one_id: string
+          user_two_id: string
+        }
+        Update: {
+          analysis_version?: string | null
+          communication_style?: Json | null
+          compatibility_score?: number
+          created_at?: string
+          id?: string
+          interest_overlap?: Json | null
+          lifestyle_compatibility?: Json | null
+          personality_match?: Json | null
+          prediction_confidence?: number | null
+          updated_at?: string
+          user_one_id?: string
+          user_two_id?: string
+        }
+        Relationships: []
+      }
       audit_log: {
         Row: {
           action: string
@@ -199,6 +244,77 @@ export type Database = {
           id?: string
         }
         Relationships: []
+      }
+      communities: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          image_url: string | null
+          is_private: boolean | null
+          member_count: number | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_private?: boolean | null
+          member_count?: number | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_private?: boolean | null
+          member_count?: number | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      community_memberships: {
+        Row: {
+          community_id: string
+          id: string
+          joined_at: string
+          role: string | null
+          user_id: string
+        }
+        Insert: {
+          community_id: string
+          id?: string
+          joined_at?: string
+          role?: string | null
+          user_id: string
+        }
+        Update: {
+          community_id?: string
+          id?: string
+          joined_at?: string
+          role?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_memberships_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       compatibility_scores: {
         Row: {
@@ -348,6 +464,38 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      event_attendees: {
+        Row: {
+          event_id: string
+          id: string
+          joined_at: string
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          event_id: string
+          id?: string
+          joined_at?: string
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          event_id?: string
+          id?: string
+          joined_at?: string
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_attendees_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "social_events"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       feed_analytics: {
         Row: {
@@ -684,6 +832,45 @@ export type Database = {
           },
         ]
       }
+      profile_metrics: {
+        Row: {
+          community_participation_score: number | null
+          engagement_rate: number | null
+          id: string
+          mutual_connections_count: number | null
+          popularity_score: number | null
+          response_rate: number | null
+          social_proof_count: number | null
+          updated_at: string
+          user_id: string
+          verification_level: number | null
+        }
+        Insert: {
+          community_participation_score?: number | null
+          engagement_rate?: number | null
+          id?: string
+          mutual_connections_count?: number | null
+          popularity_score?: number | null
+          response_rate?: number | null
+          social_proof_count?: number | null
+          updated_at?: string
+          user_id: string
+          verification_level?: number | null
+        }
+        Update: {
+          community_participation_score?: number | null
+          engagement_rate?: number | null
+          id?: string
+          mutual_connections_count?: number | null
+          popularity_score?: number | null
+          response_rate?: number | null
+          social_proof_count?: number | null
+          updated_at?: string
+          user_id?: string
+          verification_level?: number | null
+        }
+        Relationships: []
+      }
       profile_views: {
         Row: {
           created_at: string
@@ -771,6 +958,92 @@ export type Database = {
           user_type?: Database["public"]["Enums"]["user_type"] | null
           verifications?: Json | null
           whatsapp?: string | null
+        }
+        Relationships: []
+      }
+      social_events: {
+        Row: {
+          community_id: string | null
+          created_at: string
+          created_by: string
+          current_attendees: number | null
+          description: string | null
+          event_date: string
+          event_type: string | null
+          id: string
+          image_url: string | null
+          location: string | null
+          max_attendees: number | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          community_id?: string | null
+          created_at?: string
+          created_by: string
+          current_attendees?: number | null
+          description?: string | null
+          event_date: string
+          event_type?: string | null
+          id?: string
+          image_url?: string | null
+          location?: string | null
+          max_attendees?: number | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          community_id?: string | null
+          created_at?: string
+          created_by?: string
+          current_attendees?: number | null
+          description?: string | null
+          event_date?: string
+          event_type?: string | null
+          id?: string
+          image_url?: string | null
+          location?: string | null
+          max_attendees?: number | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_events_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      social_validation: {
+        Row: {
+          created_at: string
+          id: string
+          score: number | null
+          updated_at: string
+          user_id: string
+          validation_data: Json | null
+          validation_type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          score?: number | null
+          updated_at?: string
+          user_id: string
+          validation_data?: Json | null
+          validation_type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          score?: number | null
+          updated_at?: string
+          user_id?: string
+          validation_data?: Json | null
+          validation_type?: string
         }
         Relationships: []
       }
@@ -1073,8 +1346,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      calculate_compatibility_score: {
-        Args: { user_one_id: string; user_two_id: string }
+      calculate_ai_compatibility_score: {
+        Args: { user_one_uuid: string; user_two_uuid: string }
         Returns: number
       }
       calculate_engagement_scores: {
