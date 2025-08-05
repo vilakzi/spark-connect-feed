@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_tracking: {
+        Row: {
+          activity_type: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          user_id: string
+        }
+        Insert: {
+          activity_type: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          user_id: string
+        }
+        Update: {
+          activity_type?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       admin_content: {
         Row: {
           admin_id: string
@@ -235,6 +259,42 @@ export type Database = {
           participant_one_id?: string
           participant_two_id?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      daily_stats: {
+        Row: {
+          created_at: string
+          date: string
+          goal: number | null
+          id: string
+          matches: number | null
+          messages: number | null
+          swipes: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date?: string
+          goal?: number | null
+          id?: string
+          matches?: number | null
+          messages?: number | null
+          swipes?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          goal?: number | null
+          id?: string
+          matches?: number | null
+          messages?: number | null
+          swipes?: number | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -663,6 +723,68 @@ export type Database = {
         }
         Relationships: []
       }
+      stories: {
+        Row: {
+          caption: string | null
+          content_type: string
+          content_url: string
+          created_at: string
+          expires_at: string
+          id: string
+          user_id: string
+          view_count: number | null
+        }
+        Insert: {
+          caption?: string | null
+          content_type: string
+          content_url: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          user_id: string
+          view_count?: number | null
+        }
+        Update: {
+          caption?: string | null
+          content_type?: string
+          content_url?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          user_id?: string
+          view_count?: number | null
+        }
+        Relationships: []
+      }
+      story_views: {
+        Row: {
+          created_at: string
+          id: string
+          story_id: string
+          viewer_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          story_id: string
+          viewer_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          story_id?: string
+          viewer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_views_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       typing_indicators: {
         Row: {
           conversation_id: string
@@ -768,6 +890,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_preferences: {
+        Row: {
+          created_at: string
+          id: string
+          location_enabled: boolean
+          max_age: number
+          max_distance: number
+          min_age: number
+          show_me: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          location_enabled?: boolean
+          max_age?: number
+          max_distance?: number
+          min_age?: number
+          show_me?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          location_enabled?: boolean
+          max_age?: number
+          max_distance?: number
+          min_age?: number
+          show_me?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
