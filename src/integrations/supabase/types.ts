@@ -179,6 +179,57 @@ export type Database = {
         }
         Relationships: []
       }
+      blocked_users: {
+        Row: {
+          blocked_id: string
+          blocker_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          blocked_id: string
+          blocker_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          blocked_id?: string
+          blocker_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      compatibility_scores: {
+        Row: {
+          created_at: string
+          factors: Json | null
+          id: string
+          score: number
+          updated_at: string
+          user_one_id: string
+          user_two_id: string
+        }
+        Insert: {
+          created_at?: string
+          factors?: Json | null
+          id?: string
+          score: number
+          updated_at?: string
+          user_one_id: string
+          user_two_id: string
+        }
+        Update: {
+          created_at?: string
+          factors?: Json | null
+          id?: string
+          score?: number
+          updated_at?: string
+          user_one_id?: string
+          user_two_id?: string
+        }
+        Relationships: []
+      }
       content_analytics: {
         Row: {
           active_users_7d: number | null
@@ -785,6 +836,30 @@ export type Database = {
           },
         ]
       }
+      swipe_actions: {
+        Row: {
+          action_type: string
+          created_at: string
+          id: string
+          target_user_id: string
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          id?: string
+          target_user_id: string
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          id?: string
+          target_user_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       typing_indicators: {
         Row: {
           conversation_id: string
@@ -927,6 +1002,48 @@ export type Database = {
         }
         Relationships: []
       }
+      user_reports: {
+        Row: {
+          created_at: string
+          description: string | null
+          evidence_urls: string[] | null
+          id: string
+          reason: string
+          reported_user_id: string
+          reporter_id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          evidence_urls?: string[] | null
+          id?: string
+          reason: string
+          reported_user_id: string
+          reporter_id: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          evidence_urls?: string[] | null
+          id?: string
+          reason?: string
+          reported_user_id?: string
+          reporter_id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -956,6 +1073,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_compatibility_score: {
+        Args: { user_one_id: string; user_two_id: string }
+        Returns: number
+      }
       calculate_engagement_scores: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -1010,6 +1131,21 @@ export type Database = {
           share_count: number
           created_at: string
           relevance_score: number
+        }[]
+      }
+      get_potential_matches: {
+        Args: { user_id_param: string; limit_param?: number }
+        Returns: {
+          profile_id: string
+          display_name: string
+          age: number
+          bio: string
+          location: string
+          profile_image_url: string
+          profile_images: string[]
+          interests: string[]
+          photo_verified: boolean
+          compatibility_score: number
         }[]
       }
       get_user_role: {
