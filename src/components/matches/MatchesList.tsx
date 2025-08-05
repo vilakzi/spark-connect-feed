@@ -1,11 +1,8 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { MessageCircle, Star, Clock } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { useMatches } from '@/hooks/useMatches';
 
 interface Match {
   id: string;
@@ -28,38 +25,12 @@ interface MatchesListProps {
 }
 
 export const MatchesList = ({ onStartChat }: MatchesListProps) => {
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const [matches, setMatches] = useState<Match[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!user) return;
-
-    const fetchMatches = async () => {
-      try {
-        // Matches functionality not implemented yet - return empty array
-        console.log('Matches feature coming soon');
-        setMatches([]);
-      } catch (error) {
-        console.error('Error:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchMatches();
-
-    // Real-time updates will be implemented when matches table is created
-    return () => {
-      // Cleanup placeholder
-    };
-  }, [user, toast]);
+  const { matches, loading, startChat } = useMatches();
 
   const handleMessage = async (matchId: string) => {
-    // Navigate to chat (will be handled by parent component)
-    if (onStartChat) {
-      onStartChat(matchId);
+    const conversationId = await startChat(matchId);
+    if (conversationId && onStartChat) {
+      onStartChat(conversationId);
     }
   };
 

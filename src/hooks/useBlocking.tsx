@@ -3,64 +3,15 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 
-interface ReportData {
-  reason: string;
-  description?: string;
-  evidenceUrls?: string[];
-  evidenceData?: any[];
-}
-
-export const useReporting = () => {
+export const useBlocking = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [submitting, setSubmitting] = useState(false);
-
-  const submitReport = useCallback(async (reportedUserId: string, reportData: ReportData) => {
-    if (!user) {
-      toast({
-        title: "Authentication Required",
-        description: "You must be logged in to submit a report.",
-        variant: "destructive",
-      });
-      return false;
-    }
-
-    setSubmitting(true);
-    try {
-      const { error } = await supabase
-        .from('user_reports')
-        .insert({
-          reporter_id: user.id,
-          reported_user_id: reportedUserId,
-          reason: reportData.reason,
-          description: reportData.description,
-          evidence_urls: reportData.evidenceUrls || []
-        });
-
-      if (error) throw error;
-
-      toast({
-        title: "Report Submitted",
-        description: "Thank you for your report. We'll review it shortly.",
-      });
-
-      return true;
-    } catch (error) {
-      console.error('Error submitting report:', error);
-      toast({
-        title: "Error",
-        description: "Failed to submit report. Please try again.",
-        variant: "destructive",
-      });
-      return false;
-    } finally {
-      setSubmitting(false);
-    }
-  }, [user, toast]);
+  const [loading, setLoading] = useState(false);
 
   const blockUser = useCallback(async (blockedUserId: string) => {
     if (!user) return false;
 
+    setLoading(true);
     try {
       const { error } = await supabase
         .from('blocked_users')
@@ -85,12 +36,15 @@ export const useReporting = () => {
         variant: "destructive",
       });
       return false;
+    } finally {
+      setLoading(false);
     }
   }, [user, toast]);
 
   const unblockUser = useCallback(async (blockedUserId: string) => {
     if (!user) return false;
 
+    setLoading(true);
     try {
       const { error } = await supabase
         .from('blocked_users')
@@ -114,6 +68,8 @@ export const useReporting = () => {
         variant: "destructive",
       });
       return false;
+    } finally {
+      setLoading(false);
     }
   }, [user, toast]);
 
@@ -142,41 +98,31 @@ export const useReporting = () => {
     }
   }, [user]);
 
-  const uploadEvidence = useCallback(async (file: File): Promise<string | null> => {
-    if (!user) return null;
+  const isUserBlocked = useCallback(async (userId: string) => {
+    if (!user) return false;
 
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      const { data, error } = await supabase
+        .from('blocked_users')
+        .select('id')
+        .eq('blocker_id', user.id)
+        .eq('blocked_id', userId)
+        .maybeSingle();
 
-      const { error: uploadError } = await supabase.storage
-        .from('content_files')
-        .upload(fileName, file);
+      if (error) throw error;
 
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('content_files')
-        .getPublicUrl(fileName);
-
-      return publicUrl;
+      return !!data;
     } catch (error) {
-      console.error('Error uploading evidence:', error);
-      toast({
-        title: "Upload Error",
-        description: "Failed to upload evidence file.",
-        variant: "destructive",
-      });
-      return null;
+      console.error('Error checking if user is blocked:', error);
+      return false;
     }
-  }, [user, toast]);
+  }, [user]);
 
   return {
-    submitting,
-    submitReport,
     blockUser,
     unblockUser,
     getBlockedUsers,
-    uploadEvidence
+    isUserBlocked,
+    loading,
   };
 };

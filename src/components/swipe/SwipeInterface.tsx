@@ -1,69 +1,39 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Heart, X } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
-
-interface Profile {
-  id: string;
-  display_name: string | null;
-  age?: number | null;
-  bio?: string | null;
-  location?: string | null;
-  profile_image_url?: string | null;
-  profile_images?: string[] | null;
-  interests?: string[] | null;
-}
+import { Heart, X, Star } from 'lucide-react';
+import { useSwipeEngine } from '@/hooks/useSwipeEngine';
+import { SwipeCard } from './SwipeCard';
 
 export const SwipeInterface = () => {
   const { user } = useAuth();
-  const [profiles, setProfiles] = useState<Profile[]>([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [dailySwipes, setDailySwipes] = useState(0);
+  const {
+    currentProfile,
+    loading,
+    dailySwipes,
+    dailySwipeLimit,
+    canSwipe,
+    hasMoreProfiles,
+    fetchProfiles,
+    handleSwipe,
+  } = useSwipeEngine();
 
   useEffect(() => {
-    if (!user) return;
-
-    const fetchProfiles = async () => {
-      try {
-        // Swipe functionality not implemented yet - show placeholder
-        console.log('Swipe feature coming soon');
-        setProfiles([]);
-        setDailySwipes(0);
-      } catch (error) {
-        console.error('Error:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProfiles();
-  }, [user]);
-
-  const handleLike = async () => {
-    try {
-      console.log('Like functionality coming soon');
-      toast({
-        title: "Feature coming soon!",
-        description: "Swipe functionality will be available soon"
-      });
-    } catch (error) {
-      console.error('Error liking profile:', error);
+    if (user) {
+      fetchProfiles();
     }
+  }, [user, fetchProfiles]);
+
+  const handleLike = () => {
+    handleSwipe('like');
   };
 
-  const handlePass = async () => {
-    try {
-      console.log('Pass functionality coming soon');
-      toast({
-        title: "Feature coming soon!",
-        description: "Swipe functionality will be available soon"
-      });
-    } catch (error) {
-      console.error('Error passing profile:', error);
-    }
+  const handlePass = () => {
+    handleSwipe('pass');
+  };
+
+  const handleSuperLike = () => {
+    handleSwipe('super_like');
   };
 
   if (loading) {
@@ -74,24 +44,92 @@ export const SwipeInterface = () => {
     );
   }
 
-  return (
-    <div className="max-w-md mx-auto p-4">
+  if (!hasMoreProfiles) {
+    return (
       <div className="text-center py-12">
-        <h3 className="text-lg font-semibold text-foreground mb-2">Swipe Feature Coming Soon!</h3>
+        <h3 className="text-lg font-semibold text-foreground mb-2">No more profiles</h3>
         <p className="text-muted-foreground mb-4">
-          We're working hard to bring you the best matching experience.
+          Check back later for new people to discover!
         </p>
-        <div className="flex gap-4 justify-center">
-          <Button onClick={handlePass} variant="outline" size="lg" className="gap-2">
-            <X className="w-5 h-5" />
-            Pass
-          </Button>
-          <Button onClick={handleLike} size="lg" className="gap-2">
-            <Heart className="w-5 h-5" />
-            Like
-          </Button>
+        <Button onClick={fetchProfiles} variant="outline">
+          Refresh
+        </Button>
+      </div>
+    );
+  }
+
+  if (!currentProfile) {
+    return (
+      <div className="text-center py-12">
+        <h3 className="text-lg font-semibold text-foreground mb-2">Loading profiles...</h3>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-md mx-auto p-6">
+      <div className="text-center mb-4">
+        <div className="text-sm text-muted-foreground">
+          Daily swipes: {dailySwipes}/{dailySwipeLimit}
         </div>
       </div>
+
+      <SwipeCard
+        profile={{
+          id: currentProfile.profile_id,
+          display_name: currentProfile.display_name || 'Anonymous',
+          age: currentProfile.age || undefined,
+          bio: currentProfile.bio || undefined,
+          location: currentProfile.location || undefined,
+          profile_image_url: currentProfile.profile_image_url,
+          profile_images: currentProfile.profile_images,
+          interests: currentProfile.interests || [],
+          photo_verified: currentProfile.photo_verified || false
+        }}
+        onSwipe={(direction) => {
+          if (direction === 'right') handleLike();
+          else if (direction === 'left') handlePass();
+          else if (direction === 'up') handleSuperLike();
+        }}
+      />
+      
+      <div className="flex justify-center gap-4 mt-8">
+        <Button
+          onClick={handlePass}
+          variant="outline"
+          size="lg"
+          className="rounded-full w-16 h-16"
+          disabled={!canSwipe}
+        >
+          <X className="h-6 w-6" />
+        </Button>
+        <Button
+          onClick={handleSuperLike}
+          variant="outline"
+          size="lg"
+          className="rounded-full w-16 h-16 border-blue-500 text-blue-500 hover:bg-blue-50"
+          disabled={!canSwipe}
+        >
+          <Star className="h-6 w-6" />
+        </Button>
+        <Button
+          onClick={handleLike}
+          variant="default"
+          size="lg"
+          className="rounded-full w-16 h-16 bg-pink-500 hover:bg-pink-600"
+          disabled={!canSwipe}
+        >
+          <Heart className="h-6 w-6" />
+        </Button>
+      </div>
+
+      {!canSwipe && dailySwipes >= dailySwipeLimit && (
+        <div className="text-center mt-4">
+          <p className="text-sm text-muted-foreground">
+            You've reached your daily swipe limit. Come back tomorrow!
+          </p>
+        </div>
+      )}
     </div>
   );
 };
