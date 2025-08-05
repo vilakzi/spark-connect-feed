@@ -270,10 +270,10 @@ export const EnhancedFeedCard: React.FC<EnhancedFeedCardProps> = ({
             <div 
               className="relative w-full bg-card"
               style={{
-                aspectRatio: isVideo ? '16/9' : '1/1',
-                maxHeight: isVideo ? '70vh' : 'none'
+                aspectRatio: '1/1'
               }}
               onDoubleClick={handleDoubleClick}
+              onClick={isVideo ? openFullscreen : undefined}
             >
               {isVideo ? (
                 <video
