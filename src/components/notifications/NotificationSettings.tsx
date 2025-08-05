@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Bell, Smartphone, Mail, Heart, Eye, Star, Camera, MessageCircle } from 'lucide-react';
+import { Bell, Smartphone, Mail, Heart, Eye, Star, Camera, MessageCircle, ArrowLeft } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
@@ -7,7 +7,11 @@ import { Badge } from '@/components/ui/badge';
 import { useAdvancedNotifications } from '@/hooks/useAdvancedNotifications';
 import { cn } from '@/lib/utils';
 
-export const NotificationSettings = () => {
+interface NotificationSettingsProps {
+  onBack?: () => void;
+}
+
+export const NotificationSettings = ({ onBack }: NotificationSettingsProps) => {
   const { 
     preferences, 
     loading, 
@@ -93,7 +97,26 @@ export const NotificationSettings = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-background">
+      {/* Header with back button */}
+      {onBack && (
+        <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-sm border-b border-border">
+          <div className="container mx-auto px-4 py-3 flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onBack}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back
+            </Button>
+            <h1 className="text-lg font-semibold">Notification Settings</h1>
+          </div>
+        </header>
+      )}
+      
+      <div className="container mx-auto px-4 py-6 max-w-md space-y-6">
       {/* Push Notifications Setup */}
       <Card>
         <CardHeader>
@@ -206,6 +229,7 @@ export const NotificationSettings = () => {
           </div>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 };

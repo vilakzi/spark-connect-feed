@@ -87,7 +87,7 @@ const Index = () => {
       case 'editProfile':
         return <ProfileEdit onBack={() => setCurrentView('profile')} />;
       case 'notifications':
-        return <NotificationSettings />;
+        return <NotificationSettings onBack={() => setCurrentView('profile')} />;
       default:
         return <EnhancedFeed />;
     }
