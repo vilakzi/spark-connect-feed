@@ -3,6 +3,7 @@ import { useQuery, useQueryClient, useInfiniteQuery } from '@tanstack/react-quer
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { useAdvancedFeedAlgorithm } from './useAdvancedFeedAlgorithm';
 
 interface FeedPost {
   post_id: string;
@@ -36,6 +37,7 @@ export const useRealtimeFeed = () => {
   const [lastRefresh, setLastRefresh] = useState(Date.now());
   const refreshTimer = useRef<NodeJS.Timeout>();
   const [backgroundContent, setBackgroundContent] = useState<FeedPost[]>([]);
+  const { injectContent, trackUserInteraction, getRefreshInterval } = useAdvancedFeedAlgorithm();
 
   // Enhanced cache keys with timestamp for better invalidation
   const feedCacheKey = ['realtime-feed', user?.id, lastRefresh];
@@ -184,29 +186,66 @@ export const useRealtimeFeed = () => {
     }
   }, [user?.id]);
 
-  // Real-time refresh mechanism
+  // Enhanced real-time refresh with adaptive intervals
   useEffect(() => {
     if (!user) return;
 
-    const startRefreshCycle = () => {
-      refreshTimer.current = setInterval(() => {
-        warmBackgroundContent();
-        
-        // Inject fresh content periodically
-        if (Math.random() > 0.7) { // 30% chance to refresh main feed
-          setLastRefresh(Date.now());
-        }
-      }, REFRESH_INTERVAL);
-    };
-
-    startRefreshCycle();
-
-    return () => {
-      if (refreshTimer.current) {
-        clearInterval(refreshTimer.current);
+    const adaptiveRefresh = () => {
+      warmBackgroundContent();
+      
+      // Dynamic refresh probability based on user activity
+      const refreshInterval = getRefreshInterval();
+      const refreshProbability = refreshInterval < 20000 ? 0.4 : 0.2;
+      
+      if (Math.random() < refreshProbability) {
+        setLastRefresh(Date.now());
       }
     };
-  }, [user?.id, warmBackgroundContent]);
+
+    // Initial refresh
+    adaptiveRefresh();
+    
+    // Set up adaptive interval
+    const setupInterval = () => {
+      const currentInterval = getRefreshInterval();
+      return setInterval(adaptiveRefresh, currentInterval);
+    };
+    
+    let refreshInterval = setupInterval();
+    
+    // Update interval based on user activity every minute
+    const intervalUpdater = setInterval(() => {
+      clearInterval(refreshInterval);
+      refreshInterval = setupInterval();
+    }, 60000);
+
+    // Real-time subscriptions for instant content updates
+    const channel = supabase
+      .channel('feed-updates')
+      .on('postgres_changes', 
+        { event: 'INSERT', schema: 'public', table: 'feed_posts' },
+        (payload) => {
+          console.log('New post detected:', payload);
+          warmBackgroundContent();
+        }
+      )
+      .on('postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'user_interactions' },
+        (payload) => {
+          console.log('Interaction update:', payload);
+          if (Math.random() < 0.1) { // 10% chance to refresh
+            setLastRefresh(Date.now());
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      clearInterval(refreshInterval);
+      clearInterval(intervalUpdater);
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, warmBackgroundContent, getRefreshInterval]);
 
   // Enhanced infinite query with real-time updates
   const {
@@ -230,29 +269,11 @@ export const useRealtimeFeed = () => {
     retry: 3
   });
 
-  // Intelligent post rotation with background content injection
+  // Advanced content injection using AI-like algorithm
   const posts = useMemo(() => {
     const mainPosts = feedData?.pages?.flatMap(page => page.posts) || [];
-    
-    // Inject background content strategically
-    if (backgroundContent.length > 0 && mainPosts.length > 0) {
-      const enhanced = [...mainPosts];
-      const injectionPoints = [3, 7, 12, 18]; // Strategic positions
-      
-      injectionPoints.forEach((position, index) => {
-        if (position < enhanced.length && index < backgroundContent.length) {
-          const freshPost = backgroundContent[index];
-          if (!enhanced.some(p => p.post_id === freshPost.post_id)) {
-            enhanced.splice(position, 0, freshPost);
-          }
-        }
-      });
-      
-      return enhanced;
-    }
-    
-    return mainPosts;
-  }, [feedData, backgroundContent]);
+    return injectContent(mainPosts, backgroundContent);
+  }, [feedData, backgroundContent, injectContent]);
 
   // Enhanced interaction tracking with optimistic updates
   const likePost = useCallback(async (postId: string) => {
@@ -287,9 +308,12 @@ export const useRealtimeFeed = () => {
     }
   }, [user?.id, queryClient, feedCacheKey]);
 
-  // Enhanced view tracking with duration
+  // Enhanced view tracking with duration and behavior tracking
   const trackView = useCallback(async (postId: string, duration: number = 3) => {
     if (!user) return;
+
+    // Track with advanced algorithm
+    trackUserInteraction('view', postId);
 
     try {
       await supabase.rpc('track_user_interaction', {
@@ -301,7 +325,7 @@ export const useRealtimeFeed = () => {
     } catch (error) {
       console.error('Error tracking view:', error);
     }
-  }, [user?.id]);
+  }, [user?.id, trackUserInteraction]);
 
   // Enhanced share with native sharing
   const sharePost = useCallback(async (post: FeedPost) => {

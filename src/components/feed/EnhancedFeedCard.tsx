@@ -59,64 +59,7 @@ export const EnhancedFeedCard: React.FC<EnhancedFeedCardProps> = ({
   const videoRef = useRef<HTMLVideoElement>(null);
   const fullscreenVideoRef = useRef<HTMLVideoElement>(null);
 
-  // Setup view tracking
-  useEffect(() => {
-    if (cardRef.current) {
-      const cleanup = setupViewTracking(cardRef.current, post.post_id);
-      return cleanup;
-    }
-  }, [setupViewTracking, post.post_id]);
-
-  // Video autoplay with intersection observer - debounced to prevent conflicts
-  useEffect(() => {
-    const currentVideo = videoRef.current;
-    if (!currentVideo || !post.media_types[currentMediaIndex]?.startsWith('video/')) return;
-
-    let playTimeout: NodeJS.Timeout;
-    let pauseTimeout: NodeJS.Timeout;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          // Clear any pending timeouts
-          clearTimeout(playTimeout);
-          clearTimeout(pauseTimeout);
-
-          if (entry.isIntersecting && entry.intersectionRatio > 0.7) {
-            // Debounced auto-play when 70% visible
-            playTimeout = setTimeout(() => {
-              if (currentVideo && !currentVideo.paused) return; // Already playing
-              currentVideo.play()
-                .then(() => {
-                  setIsPlaying(true);
-                  setShowPlayButton(false);
-                })
-                .catch(() => {
-                  setShowPlayButton(true);
-                });
-            }, 300);
-          } else if (entry.intersectionRatio < 0.3) {
-            // Debounced pause when less than 30% visible
-            pauseTimeout = setTimeout(() => {
-              if (currentVideo && currentVideo.paused) return; // Already paused
-              currentVideo.pause();
-              setIsPlaying(false);
-              setShowPlayButton(true);
-            }, 300);
-          }
-        });
-      },
-      { threshold: [0.3, 0.7] }
-    );
-
-    observer.observe(currentVideo);
-    return () => {
-      observer.disconnect();
-      clearTimeout(playTimeout);
-      clearTimeout(pauseTimeout);
-    };
-  }, [currentMediaIndex, post.media_types]);
-
+  // Define callback functions first
   const togglePlay = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -144,6 +87,106 @@ export const EnhancedFeedCard: React.FC<EnhancedFeedCardProps> = ({
       setIsMuted(video.muted);
     }
   }, []);
+
+  const closeFullscreen = useCallback(() => {
+    setIsFullscreen(false);
+    // Sync current video with fullscreen video time
+    if (fullscreenVideoRef.current && videoRef.current) {
+      videoRef.current.currentTime = fullscreenVideoRef.current.currentTime;
+    }
+  }, []);
+
+  // Setup view tracking
+  useEffect(() => {
+    if (cardRef.current) {
+      const cleanup = setupViewTracking(cardRef.current, post.post_id);
+      return cleanup;
+    }
+  }, [setupViewTracking, post.post_id]);
+
+  // Enhanced keyboard controls for fullscreen video
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (isFullscreen) {
+        switch (e.key) {
+          case 'Escape':
+            closeFullscreen();
+            break;
+          case ' ':
+            e.preventDefault();
+            togglePlay();
+            break;
+          case 'm':
+          case 'M':
+            toggleMute();
+            break;
+        }
+      }
+    };
+
+    if (isFullscreen) {
+      document.addEventListener('keydown', handleKeyPress);
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyPress);
+      document.body.style.overflow = 'unset';
+    };
+  }, [isFullscreen, togglePlay, toggleMute, closeFullscreen]);
+
+  // Video autoplay with intersection observer - debounced to prevent conflicts
+  useEffect(() => {
+    const currentVideo = videoRef.current;
+    if (!currentVideo || !post.media_types[currentMediaIndex]?.startsWith('video/')) return;
+
+    let playTimeout: NodeJS.Timeout;
+    let pauseTimeout: NodeJS.Timeout;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          // Clear any pending timeouts
+          clearTimeout(playTimeout);
+          clearTimeout(pauseTimeout);
+
+          if (entry.isIntersecting && entry.intersectionRatio > 0.7 && !isFullscreen) {
+            // Debounced auto-play when 70% visible (not in fullscreen)
+            playTimeout = setTimeout(() => {
+              if (currentVideo && !currentVideo.paused) return; // Already playing
+              currentVideo.play()
+                .then(() => {
+                  setIsPlaying(true);
+                  setShowPlayButton(false);
+                })
+                .catch(() => {
+                  setShowPlayButton(true);
+                });
+            }, 300);
+          } else if (entry.intersectionRatio < 0.3 && !isFullscreen) {
+            // Debounced pause when less than 30% visible (not in fullscreen)
+            pauseTimeout = setTimeout(() => {
+              if (currentVideo && currentVideo.paused) return; // Already paused
+              currentVideo.pause();
+              setIsPlaying(false);
+              setShowPlayButton(true);
+            }, 300);
+          }
+        });
+      },
+      { threshold: [0.3, 0.7] }
+    );
+
+    observer.observe(currentVideo);
+    return () => {
+      observer.disconnect();
+      clearTimeout(playTimeout);
+      clearTimeout(pauseTimeout);
+    };
+  }, [currentMediaIndex, post.media_types, isFullscreen]);
+
 
   const handleLike = useCallback(async () => {
     if (!isLiked) {
@@ -203,13 +246,6 @@ export const EnhancedFeedCard: React.FC<EnhancedFeedCardProps> = ({
     }
   }, []);
 
-  const closeFullscreen = useCallback(() => {
-    setIsFullscreen(false);
-    // Sync current video with fullscreen video time
-    if (fullscreenVideoRef.current && videoRef.current) {
-      videoRef.current.currentTime = fullscreenVideoRef.current.currentTime;
-    }
-  }, []);
 
   const currentMedia = post.media_urls[currentMediaIndex];
   const currentMediaType = post.media_types[currentMediaIndex];
@@ -421,62 +457,53 @@ export const EnhancedFeedCard: React.FC<EnhancedFeedCardProps> = ({
         </CardContent>
       </Card>
 
-      {/* Enhanced Fullscreen Video Modal */}
+      {/* Enhanced Fullscreen Video Modal with Multiple Exit Methods */}
       {isFullscreen && isVideo && (
-        <Dialog open={isFullscreen} onOpenChange={closeFullscreen}>
-          <DialogContent className="max-w-[100vw] max-h-[100vh] p-0 bg-black border-0 data-[state=open]:duration-300">
-            <div className="relative w-screen h-screen flex items-center justify-center">
-              <video
-                ref={fullscreenVideoRef}
-                src={currentMedia}
-                className="w-full h-full object-contain"
-                controls
-                autoPlay
-                loop
-                muted={isMuted}
-                onError={(e) => {
-                  console.error('Fullscreen video error:', e);
-                  closeFullscreen();
-                }}
-              />
-              
-              {/* Enhanced Exit Button - Fixed positioning and visibility */}
-              <div className="absolute top-4 right-4 z-[9999]">
-                <Button
-                  variant="secondary"
-                  size="lg"
-                  onClick={closeFullscreen}
-                  className="bg-black/60 hover:bg-black/80 text-white border-white/20 backdrop-blur-sm rounded-full w-12 h-12 p-0 shadow-lg transition-all duration-200 hover:scale-110"
-                >
-                  <X className="w-6 h-6" />
-                </Button>
-              </div>
-
-              {/* Multiple Exit Methods */}
-              <div 
-                className="absolute inset-0 cursor-pointer"
-                onClick={(e) => {
-                  // Only close if clicking outside the video
-                  if (e.target === e.currentTarget) {
-                    closeFullscreen();
-                  }
-                }}
-              />
-              
-              {/* Escape key handler */}
-              <div
-                className="sr-only"
-                onKeyDown={(e) => {
-                  if (e.key === 'Escape') {
-                    closeFullscreen();
-                  }
-                }}
-                tabIndex={0}
-                autoFocus
-              />
-            </div>
-          </DialogContent>
-        </Dialog>
+        <div className="fixed inset-0 bg-black z-[99999] flex items-center justify-center">
+          {/* Click outside to close */}
+          <div 
+            className="absolute inset-0 cursor-pointer" 
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                closeFullscreen();
+              }
+            }}
+          />
+          
+          {/* Enhanced exit button - always visible with highest z-index */}
+          <button
+            onClick={closeFullscreen}
+            className="absolute top-4 right-4 z-[100000] bg-black/70 hover:bg-black/90 text-white rounded-full p-3 transition-all duration-200 backdrop-blur-sm border border-white/20 shadow-2xl hover:scale-110"
+            style={{ 
+              zIndex: 100000,
+              position: 'fixed',
+              top: '1rem',
+              right: '1rem'
+            }}
+          >
+            <X className="h-6 w-6" />
+          </button>
+          
+          {/* Controls hint */}
+          <div className="absolute top-4 left-4 z-[100000] bg-black/70 text-white text-sm px-4 py-2 rounded-full backdrop-blur-sm border border-white/20">
+            ESC to exit • SPACE to play/pause • M to mute
+          </div>
+          
+          <video
+            ref={fullscreenVideoRef}
+            src={currentMedia}
+            className="w-full h-full object-contain relative z-[99998]"
+            controls
+            autoPlay
+            loop
+            muted={isMuted}
+            style={{ zIndex: 99998 }}
+            onError={(e) => {
+              console.error('Fullscreen video error:', e);
+              closeFullscreen();
+            }}
+          />
+        </div>
       )}
 
       {/* Floating heart animation styles */}
