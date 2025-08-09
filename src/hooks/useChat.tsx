@@ -16,7 +16,6 @@ interface Message {
 
 interface Conversation {
   id: string;
-  match_id: string;
   participant_one_id: string;
   participant_two_id: string;
   last_message_id?: string;
@@ -59,19 +58,26 @@ export const useChat = () => {
       // Simplified query without foreign key relationship that might not exist
       const { data, error } = await supabase
         .from('conversations')
-        .select('*')
+        .select('id, participant_one_id, participant_two_id, last_message_id, last_message_at, created_at, updated_at')
         .or(`participant_one_id.eq.${user.id},participant_two_id.eq.${user.id}`)
         .order('updated_at', { ascending: false });
 
-      if (error) {
-        console.warn('Error fetching conversations:', error.message);
+      if (error || !data) {
+        console.warn('Error fetching conversations:', error?.message || 'No data returned');
         setConversations([]);
         return;
       }
 
-      // Enrich conversations with other user data and unread count
-        const enrichedConversations = await Promise.all(
-        data.map(async (conv: Conversation) => {
+      const enrichedConversations = await Promise.all(
+        data.map(async (conv: {
+          id: string;
+          participant_one_id: string;
+          participant_two_id: string;
+          last_message_id?: string;
+          last_message_at?: string;
+          created_at: string;
+          updated_at: string;
+        }) => {
           const otherUserId = conv.participant_one_id === user.id 
             ? conv.participant_two_id 
             : conv.participant_one_id;
@@ -102,7 +108,6 @@ export const useChat = () => {
 
           return {
             id: conv.id,
-            match_id: conv.match_id,
             participant_one_id: conv.participant_one_id,
             participant_two_id: conv.participant_two_id,
             last_message_id: conv.last_message_id,
@@ -150,6 +155,24 @@ export const useChat = () => {
       setLoading(false);
     }
   }, []);
+
+  // Update typing status
+  const updateTypingStatus = useCallback(async (conversationId: string, isTyping: boolean) => {
+    if (!user) return;
+
+    try {
+      await supabase
+        .from('typing_indicators')
+        .upsert({
+          conversation_id: conversationId,
+          user_id: user.id,
+          is_typing: isTyping,
+          updated_at: new Date().toISOString()
+        });
+    } catch (error) {
+      console.error('Error updating typing status:', error);
+    }
+  }, [user]);
 
   // Send a message
   const sendMessage = useCallback(async (conversationId: string, content: string) => {
@@ -200,24 +223,6 @@ export const useChat = () => {
       return null;
     }
   }, [fetchConversations]);
-
-  // Update typing status
-  const updateTypingStatus = useCallback(async (conversationId: string, isTyping: boolean) => {
-    if (!user) return;
-
-    try {
-      await supabase
-        .from('typing_indicators')
-        .upsert({
-          conversation_id: conversationId,
-          user_id: user.id,
-          is_typing: isTyping,
-          updated_at: new Date().toISOString()
-        });
-    } catch (error) {
-      console.error('Error updating typing status:', error);
-    }
-  }, [user]);
 
   // Mark messages as read
   const markMessagesAsRead = useCallback(async (conversationId: string) => {
