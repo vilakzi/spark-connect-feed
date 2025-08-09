@@ -6,9 +6,20 @@ interface SocialValidation {
   id: string;
   userId: string;
   validationType: string;
-  validationData: Record<string, any>;
+  validationData: Record<string, unknown>;
   score: number;
   createdAt: string;
+}
+
+interface ProfileData {
+  id: string;
+  display_name: string;
+  profile_image_url?: string;
+}
+
+interface ProfileView {
+  created_at: string;
+  profiles: ProfileData;
 }
 
 interface ProfileMetrics {
@@ -104,12 +115,15 @@ export const useSocialProof = () => {
         .order('created_at', { ascending: false })
         .limit(10);
 
-      const recentViewers = viewsData?.map(view => ({
-        id: (view.profiles as any)?.id || '',
-        displayName: (view.profiles as any)?.display_name || 'Anonymous',
-        profileImageUrl: (view.profiles as any)?.profile_image_url || '',
-        viewedAt: view.created_at
-      })) || [];
+      const recentViewers = viewsData?.map((view: unknown) => {
+        const typedView = view as ProfileView;
+        return {
+          id: typedView.profiles?.id || '',
+          displayName: typedView.profiles?.display_name || 'Anonymous',
+          profileImageUrl: typedView.profiles?.profile_image_url || '',
+          viewedAt: typedView.created_at
+        };
+      }) || [];
 
       // Get social validations for verification badges
       const { data: validationData } = await supabase
@@ -147,7 +161,7 @@ export const useSocialProof = () => {
 
   const updateSocialValidation = useCallback(async (
     validationType: string,
-    validationData: Record<string, any>,
+    validationData: Record<string, unknown>,
     score: number
   ) => {
     if (!user) return;
@@ -158,7 +172,8 @@ export const useSocialProof = () => {
         .upsert({
           user_id: user.id,
           validation_type: validationType,
-          validation_data: validationData,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          validation_data: validationData as any,
           score
         })
         .select()
@@ -169,7 +184,7 @@ export const useSocialProof = () => {
           id: data.id,
           userId: data.user_id,
           validationType: data.validation_type,
-          validationData: data.validation_data as Record<string, any>,
+          validationData: data.validation_data as Record<string, unknown>,
           score: data.score,
           createdAt: data.created_at
         };

@@ -14,6 +14,18 @@ interface ProfileView {
   };
 }
 
+interface DatabaseProfileView {
+  id: string;
+  viewer_id: string;
+  viewed_id: string;
+  created_at: string;
+  profiles?: {
+    display_name: string;
+    profile_image_url?: string;
+    age?: number;
+  };
+}
+
 export const useProfileViews = () => {
   const { user } = useAuth();
   const [profileViews, setProfileViews] = useState<ProfileView[]>([]);
@@ -40,14 +52,17 @@ export const useProfileViews = () => {
 
       if (error) throw error;
 
-      const viewsWithViewer = data?.map(view => ({
-        ...view,
-        viewer: {
-          display_name: (view as any).profiles?.display_name || 'Unknown',
-          profile_image_url: (view as any).profiles?.profile_image_url,
-          age: (view as any).profiles?.age
-        }
-      })) || [];
+      const viewsWithViewer = data?.map((view: unknown) => {
+        const typedView = view as DatabaseProfileView;
+        return {
+          ...typedView,
+          viewer: {
+            display_name: typedView.profiles?.display_name || 'Unknown',
+            profile_image_url: typedView.profiles?.profile_image_url,
+            age: typedView.profiles?.age
+          }
+        };
+      }) || [];
 
       setProfileViews(viewsWithViewer);
     } catch (error) {

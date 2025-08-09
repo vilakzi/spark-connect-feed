@@ -29,9 +29,14 @@ interface UserActivity {
   userId: string;
   displayName: string;
   email: string;
-  lastActive: string;
-  activityType: string;
+  lastActive: Date;
   isOnline: boolean;
+  activityType: 'message' | 'match' | 'post';
+}
+
+interface ProfileInfo {
+  display_name?: string;
+  last_active?: string;
 }
 
 export const useAdminAnalytics = () => {
@@ -233,14 +238,14 @@ export const useAdminAnalytics = () => {
 
       // Process messages
       messagesResult.data?.forEach(msg => {
-        const profile = (msg.profiles as any);
+        const profile = (msg.profiles as ProfileInfo);
         if (profile) {
           const lastActive = new Date(profile.last_active || msg.created_at);
           activities.push({
             userId: msg.sender_id,
             displayName: profile.display_name || 'Anonymous',
             email: '',
-            lastActive: msg.created_at,
+            lastActive: lastActive,
             activityType: 'message',
             isOnline: now.getTime() - lastActive.getTime() < isOnlineThreshold
           });
@@ -249,14 +254,14 @@ export const useAdminAnalytics = () => {
 
       // Process matches
       matchesResult.data?.forEach(match => {
-        const profile = (match.profiles as any);
+        const profile = (match.profiles as ProfileInfo);
         if (profile) {
           const lastActive = new Date(profile.last_active || match.created_at);
           activities.push({
             userId: match.user_one_id,
             displayName: profile.display_name || 'Anonymous',
             email: '',
-            lastActive: match.created_at,
+            lastActive: lastActive,
             activityType: 'match',
             isOnline: now.getTime() - lastActive.getTime() < isOnlineThreshold
           });
@@ -265,14 +270,14 @@ export const useAdminAnalytics = () => {
 
       // Process posts
       postsResult.data?.forEach(post => {
-        const profile = (post.profiles as any);
+        const profile = (post.profiles as ProfileInfo);
         if (profile) {
           const lastActive = new Date(profile.last_active || post.created_at);
           activities.push({
             userId: post.user_id,
             displayName: profile.display_name || 'Anonymous',
             email: '',
-            lastActive: post.created_at,
+            lastActive: lastActive,
             activityType: 'post',
             isOnline: now.getTime() - lastActive.getTime() < isOnlineThreshold
           });
@@ -320,7 +325,7 @@ export const useAdminAnalytics = () => {
     return () => {
       stopRealTimeUpdates();
     };
-  }, [user]);
+  }, [user, fetchAdminStats, fetchEngagementData, fetchRecentActivity, fetchUserGrowthData, startRealTimeUpdates, stopRealTimeUpdates]);
 
   return {
     loading,

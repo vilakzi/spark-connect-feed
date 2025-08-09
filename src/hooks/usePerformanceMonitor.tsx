@@ -1,4 +1,14 @@
-import { useEffect, useCallback, useRef } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
+
+interface PerformanceMemory {
+  usedJSHeapSize: number;
+  totalJSHeapSize: number;
+  jsHeapSizeLimit: number;
+}
+
+interface ExtendedPerformance extends Performance {
+  memory?: PerformanceMemory;
+}
 
 interface PerformanceMetrics {
   renderTime: number;
@@ -20,7 +30,7 @@ export const usePerformanceMonitor = (componentName: string) => {
     const renderTime = performance.now() - renderStartTime.current;
     
     // Get memory usage if available
-    const memoryUsage = (performance as any).memory?.usedJSHeapSize || 0;
+    const memoryUsage = (performance as ExtendedPerformance).memory?.usedJSHeapSize || 0;
     
     const metrics: PerformanceMetrics = {
       renderTime,

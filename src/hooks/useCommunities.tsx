@@ -48,6 +48,51 @@ interface CommunityMembership {
   userId: string;
   role: string;
   joinedAt: string;
+  communities: Community;
+}
+
+interface DatabaseCommunity {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  image_url: string;
+  member_count: number;
+  is_private: boolean;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface DatabaseMembership {
+  role: string;
+  joined_at: string;
+  communities: DatabaseCommunity;
+}
+
+interface DatabaseEventCommunity {
+  name: string;
+  image_url: string;
+}
+
+interface DatabaseEvent {
+  id: string;
+  title: string;
+  description: string;
+  event_date: string;
+  location: string;
+  community_id: string;
+  created_by: string;
+  max_attendees: number;
+  current_attendees: number;
+  image_url: string;
+  event_type: string;
+  created_at: string;
+  communities: DatabaseEventCommunity;
+  event_attendees: Array<{
+    status: string;
+    joined_at: string;
+  }>;
 }
 
 export const useCommunities = () => {
@@ -138,8 +183,8 @@ export const useCommunities = () => {
         .eq('user_id', user.id);
 
       if (membershipData) {
-        const formattedCommunities: Community[] = membershipData.map(membership => {
-          const community = membership.communities as any;
+        const formattedCommunities: Community[] = membershipData.map((membership: DatabaseMembership) => {
+          const community = membership.communities;
           return {
             id: community.id,
             name: community.name,
@@ -355,7 +400,7 @@ export const useCommunities = () => {
         .limit(20);
 
       if (eventsData) {
-        const formattedEvents: SocialEvent[] = eventsData.map(event => ({
+        const formattedEvents: SocialEvent[] = eventsData.map((event: DatabaseEvent) => ({
           id: event.id,
           title: event.title,
           description: event.description || '',
@@ -369,8 +414,8 @@ export const useCommunities = () => {
           eventType: event.event_type,
           createdAt: event.created_at,
           community: event.communities ? {
-            name: (event.communities as any).name,
-            imageUrl: (event.communities as any).image_url
+            name: event.communities.name,
+            imageUrl: event.communities.image_url
           } : undefined,
           userAttendance: event.event_attendees?.[0] ? {
             status: event.event_attendees[0].status,

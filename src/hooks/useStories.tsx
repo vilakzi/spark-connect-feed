@@ -19,6 +19,21 @@ interface Story {
   viewed_by_me?: boolean;
 }
 
+interface DatabaseStory {
+  id: string;
+  user_id: string;
+  content_url: string;
+  content_type: string;
+  caption?: string;
+  created_at: string;
+  expires_at: string;
+  view_count: number;
+  profiles?: {
+    display_name: string;
+    profile_image_url?: string;
+  };
+}
+
 export const useStories = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -47,13 +62,16 @@ export const useStories = () => {
 
       if (error) throw error;
 
-      const storiesWithUser = data?.map(story => ({
-        ...story,
-        user: {
-          display_name: (story as any).profiles?.display_name || 'Unknown',
-          profile_image_url: (story as any).profiles?.profile_image_url
-        }
-      })) || [];
+      const storiesWithUser = data?.map((story: unknown) => {
+        const typedStory = story as DatabaseStory;
+        return {
+          ...typedStory,
+          user: {
+            display_name: typedStory.profiles?.display_name || 'Unknown',
+            profile_image_url: typedStory.profiles?.profile_image_url
+          }
+        };
+      }) || [];
 
       setStories(storiesWithUser);
     } catch (error) {
@@ -217,7 +235,7 @@ export const useStories = () => {
       fetchStories();
       fetchMyStories();
     }
-  }, [user]);
+  }, [user, fetchStories, fetchMyStories]);
 
   return {
     stories,

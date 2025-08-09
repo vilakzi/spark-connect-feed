@@ -244,7 +244,7 @@ export const useEnhancedFeed = () => {
 
   // Initial load and real-time updates - only run once per user
   useEffect(() => {
-    if (user && feedState.posts.length === 0) {
+    if (user && feedState.posts.length === 0 && !feedState.loading) {
       fetchFeed(0, true);
 
       // Set up real-time updates
@@ -287,11 +287,12 @@ export const useEnhancedFeed = () => {
       return () => {
         supabase.removeChannel(channel);
         // Clear all view timeouts
-        viewTimeouts.current.forEach(timeout => clearTimeout(timeout));
-        viewTimeouts.current.clear();
+        const currentTimeouts = viewTimeouts.current;
+        currentTimeouts.forEach(timeout => clearTimeout(timeout));
+        currentTimeouts.clear();
       };
     }
-  }, [user]);
+  }, [user, feedState.posts.length, feedState.loading, fetchFeed]);
 
   // User interactions
   const likePost = useCallback(async (postId: string) => {

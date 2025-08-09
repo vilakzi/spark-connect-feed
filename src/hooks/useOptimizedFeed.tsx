@@ -37,9 +37,9 @@ export const useOptimizedFeed = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Cache keys
-  const feedCacheKey = ['feed', user?.id];
-  const preferencesKey = ['feed-preferences', user?.id];
+  // Cache keys with useMemo to prevent re-creation
+  const feedCacheKey = useMemo(() => ['feed', user?.id], [user?.id]);
+  const preferencesKey = useMemo(() => ['feed-preferences', user?.id], [user?.id]);
 
   // Fetch personalized feed with pagination
   const fetchFeedPage = useCallback(async (context: { pageParam: unknown }): Promise<FeedQueryResult> => {

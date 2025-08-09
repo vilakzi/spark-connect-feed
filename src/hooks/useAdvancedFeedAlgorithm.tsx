@@ -2,6 +2,16 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuth } from './useAuth';
 import { supabase } from '@/integrations/supabase/client';
 
+interface FeedPost {
+  id: string;
+  created_at: string;
+  like_count: number;
+  comment_count: number;
+  share_count: number;
+  view_count: number;
+  media_types: string[];
+}
+
 interface ContentScore {
   postId: string;
   engagementScore: number;
@@ -34,7 +44,7 @@ export const useAdvancedFeedAlgorithm = () => {
   });
 
   // Calculate dynamic content scoring
-  const calculateContentScore = useCallback((post: any): ContentScore => {
+  const calculateContentScore = useCallback((post: FeedPost): ContentScore => {
     const now = Date.now();
     const postAge = now - new Date(post.created_at).getTime();
     
@@ -79,7 +89,7 @@ export const useAdvancedFeedAlgorithm = () => {
   }, [userBehavior]);
 
   // Smart content injection algorithm
-  const injectContent = useCallback((mainPosts: any[], backgroundPosts: any[]) => {
+  const injectContent = useCallback((mainPosts: FeedPost[], backgroundPosts: FeedPost[]) => {
     const result = [];
     let backgroundIndex = 0;
 

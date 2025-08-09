@@ -1,11 +1,20 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 interface UserPresence {
   user_id: string;
   online: boolean;
   last_seen: string;
+}
+
+interface PresenceEvent {
+  newPresences: UserPresence[];
+}
+
+interface PresenceLeaveEvent {
+  leftPresences: UserPresence[];
 }
 
 interface PresenceHookReturn {
@@ -17,7 +26,7 @@ interface PresenceHookReturn {
 export const usePresence = (): PresenceHookReturn => {
   const { user } = useAuth();
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
-  const presenceChannel = useRef<any>(null);
+  const presenceChannel = useRef<RealtimeChannel | null>(null);
   const heartbeatInterval = useRef<NodeJS.Timeout | null>(null);
 
   const updateLastActive = async () => {
@@ -77,8 +86,8 @@ export const usePresence = (): PresenceHookReturn => {
         const newState = presenceChannel.current.presenceState();
         const online = new Set<string>();
         
-        Object.values(newState).forEach((presences: any) => {
-          presences.forEach((presence: UserPresence) => {
+        Object.values(newState).forEach((presences: unknown) => {
+          (presences as UserPresence[]).forEach((presence: UserPresence) => {
             if (presence.online) {
               online.add(presence.user_id);
             }
@@ -87,7 +96,7 @@ export const usePresence = (): PresenceHookReturn => {
         
         setOnlineUsers(online);
       })
-      .on('presence', { event: 'join' }, ({ newPresences }: any) => {
+      .on('presence', { event: 'join' }, ({ newPresences }: PresenceEvent) => {
         setOnlineUsers(prev => {
           const updated = new Set(prev);
           newPresences.forEach((presence: UserPresence) => {
@@ -98,7 +107,7 @@ export const usePresence = (): PresenceHookReturn => {
           return updated;
         });
       })
-      .on('presence', { event: 'leave' }, ({ leftPresences }: any) => {
+      .on('presence', { event: 'leave' }, ({ leftPresences }: PresenceLeaveEvent) => {
         setOnlineUsers(prev => {
           const updated = new Set(prev);
           leftPresences.forEach((presence: UserPresence) => {
@@ -128,7 +137,7 @@ export const usePresence = (): PresenceHookReturn => {
         clearInterval(heartbeatInterval.current);
       }
     };
-  }, [user]);
+  }, [user, updatePresence]);
 
   // Update presence on user activity
   useEffect(() => {
@@ -147,7 +156,7 @@ export const usePresence = (): PresenceHookReturn => {
         document.removeEventListener(event, handleActivity);
       });
     };
-  }, [user]);
+  }, [user, updatePresence]);
 
   return {
     onlineUsers,

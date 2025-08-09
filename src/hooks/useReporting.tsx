@@ -7,7 +7,7 @@ interface ReportData {
   reason: string;
   description?: string;
   evidenceUrls?: string[];
-  evidenceData?: any[];
+  evidenceData?: Array<Record<string, unknown>>;
 }
 
 export const useReporting = () => {

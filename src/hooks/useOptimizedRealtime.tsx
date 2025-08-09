@@ -1,19 +1,26 @@
 import { useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import type { RealtimeChannel } from '@supabase/supabase-js';
+
+interface PresenceMetadata {
+  location?: string;
+  device?: string;
+  [key: string]: unknown;
+}
 
 interface SubscriptionManager {
-  subscriptions: Map<string, any>;
+  subscriptions: Map<string, RealtimeChannel>;
   cleanup: () => void;
-  addSubscription: (key: string, subscription: any) => void;
+  addSubscription: (key: string, subscription: RealtimeChannel) => void;
   removeSubscription: (key: string) => void;
 }
 
 export const useOptimizedRealtimeSubscriptions = (): SubscriptionManager => {
   const { user } = useAuth();
-  const subscriptionsRef = useRef<Map<string, any>>(new Map());
+  const subscriptionsRef = useRef<Map<string, RealtimeChannel>>(new Map());
 
-  const addSubscription = useCallback((key: string, subscription: any) => {
+  const addSubscription = useCallback((key: string, subscription: RealtimeChannel) => {
     // Remove existing subscription with same key
     const existing = subscriptionsRef.current.get(key);
     if (existing) {
@@ -104,7 +111,7 @@ export const useOptimizedPresence = () => {
   const heartbeatRef = useRef<NodeJS.Timeout>();
   const lastActivityRef = useRef<number>(Date.now());
 
-  const updatePresence = useCallback(async (status: 'online' | 'away' | 'offline', metadata?: any) => {
+  const updatePresence = useCallback(async (status: 'online' | 'away' | 'offline', metadata?: PresenceMetadata) => {
     if (!user) return;
 
     try {
@@ -178,7 +185,7 @@ export const useOptimizedPresence = () => {
 export const useOptimizedChat = () => {
   const { user } = useAuth();
   const { addSubscription, removeSubscription } = useOptimizedRealtimeSubscriptions();
-  const connectionPoolRef = useRef<Map<string, any>>(new Map());
+  const connectionPoolRef = useRef<Map<string, RealtimeChannel>>(new Map());
 
   const getOrCreateChatConnection = useCallback((conversationId: string) => {
     const existing = connectionPoolRef.current.get(conversationId);

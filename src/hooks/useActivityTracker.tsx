@@ -7,8 +7,16 @@ interface ActivityData {
   total_matches: number;
   total_messages: number;
   total_profile_views: number;
-  weekly_activity: any[];
-  popular_times: any[];
+  weekly_activity: Array<{
+    date: string;
+    swipes: number;
+    matches: number;
+    messages: number;
+  }>;
+  popular_times: Array<{
+    hour: number;
+    activity_count: number;
+  }>;
 }
 
 interface DailyStats {
@@ -31,9 +39,9 @@ export const useActivityTracker = () => {
     if (user) {
       loadDailyStats();
     }
-  }, [user]);
+  }, [user, loadDailyStats]);
 
-  const loadDailyStats = async () => {
+  const loadDailyStats = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -60,9 +68,9 @@ export const useActivityTracker = () => {
     } catch (error) {
       console.error('Error loading daily stats:', error);
     }
-  };
+  }, [user]);
 
-  const trackActivity = useCallback(async (activityType: string, metadata: any = {}) => {
+  const trackActivity = useCallback(async (activityType: string, metadata: Record<string, unknown> = {}) => {
     if (!user) return;
     
     try {

@@ -16,6 +16,15 @@ interface NotificationPreferences {
   };
 }
 
+interface NotificationData {
+  title: string;
+  message: string;
+  type: 'match' | 'message' | 'like' | 'super_like' | 'promotion';
+  userId?: string;
+  actionUrl?: string;
+  metadata?: Record<string, unknown>;
+}
+
 export const useAdvancedNotifications = () => {
   const { user } = useAuth();
   const [preferences, setPreferences] = useState<NotificationPreferences>({
@@ -44,7 +53,7 @@ export const useAdvancedNotifications = () => {
     }
   }, [user]);
 
-  const scheduleNotification = useCallback(async (type: string, data: any, scheduledFor?: Date) => {
+  const scheduleNotification = useCallback(async (type: string, data: NotificationData, scheduledFor?: Date) => {
     if (!user) return;
     
     try {

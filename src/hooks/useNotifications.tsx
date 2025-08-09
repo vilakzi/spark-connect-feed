@@ -8,7 +8,7 @@ interface Notification {
   type: string;
   title: string;
   message: string;
-  data?: any;
+  data?: Record<string, unknown>;
   read_at?: string;
   created_at: string;
 }
@@ -100,7 +100,10 @@ export const useNotifications = (): NotificationHookReturn => {
           return;
         }
 
-        setNotifications(data || []);
+        setNotifications((data || []).map(notification => ({
+          ...notification,
+          data: notification.data as Record<string, unknown>
+        })));
       } catch (error) {
         console.error('Error:', error);
       }
