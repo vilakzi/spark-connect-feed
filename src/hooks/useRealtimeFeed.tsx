@@ -150,9 +150,10 @@ export const useRealtimeFeed = () => {
       // Intelligent content mixing
       const mixedPosts = mixContentIntelligently(userPosts || [], transformedAdminContent);
 
+      const userPageFull = (userPosts?.length || 0) === POSTS_PER_BATCH;
       return {
         posts: mixedPosts,
-        nextCursor: mixedPosts.length === POSTS_PER_BATCH ? pageParam + 1 : undefined
+        nextCursor: userPageFull ? pageParam + 1 : undefined
       };
 
     } catch (error) {
@@ -227,15 +228,24 @@ export const useRealtimeFeed = () => {
         (payload) => {
           console.log('New post detected:', payload);
           warmBackgroundContent();
+          // Immediately refresh to prepend newest content
+          setLastRefresh(Date.now());
+        }
+      )
+      .on('postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'feed_posts' },
+        (payload) => {
+          console.log('Post updated:', payload);
+          // Refresh when posts are published/edited to keep feed fresh
+          setLastRefresh(Date.now());
         }
       )
       .on('postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'user_interactions' },
         (payload) => {
           console.log('Interaction update:', payload);
-          if (Math.random() < 0.1) { // 10% chance to refresh
-            setLastRefresh(Date.now());
-          }
+          // Invalidate cached counts to reflect live engagement
+          queryClient.invalidateQueries({ queryKey: feedCacheKey });
         }
       )
       .subscribe();
