@@ -36,8 +36,8 @@ export function ContentOnlyFeed() {
         .order('created_at', { ascending: false });
       if (!error && data) {
         setContentItems(
-          data.map((item: any) => ({
-            id: item.id,
+          data.map((item: Partial<ContentItem> & { content_url?: string; post_type?: string }) => ({
+            id: item.id || '',
             title: item.title ?? '',
             description: item.description ?? '',
             file_url: item.file_url ?? item.content_url ?? '',

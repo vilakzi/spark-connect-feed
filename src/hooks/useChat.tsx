@@ -71,7 +71,7 @@ export const useChat = () => {
 
       // Enrich conversations with other user data and unread count
         const enrichedConversations = await Promise.all(
-        data.map(async (conv: any) => {
+        data.map(async (conv: Conversation) => {
           const otherUserId = conv.participant_one_id === user.id 
             ? conv.participant_two_id 
             : conv.participant_one_id;
@@ -177,7 +177,7 @@ export const useChat = () => {
         variant: "destructive"
       });
     }
-  }, [user]);
+  }, [user, updateTypingStatus]);
 
   // Create conversation from match
   const createConversation = useCallback(async (matchId: string) => {
@@ -270,7 +270,7 @@ export const useChat = () => {
       .subscribe();
 
     // Subscribe to new messages in current conversation
-    let messageChannel: any = null;
+    let messageChannel: ReturnType<typeof supabase.channel> | null = null;
     if (currentConversationId) {
       messageChannel = supabase
         .channel(`messages-${currentConversationId}`)
@@ -292,7 +292,7 @@ export const useChat = () => {
     }
 
     // Subscribe to typing indicators
-    let typingChannel: any = null;
+    let typingChannel: ReturnType<typeof supabase.channel> | null = null;
     if (currentConversationId) {
       typingChannel = supabase
         .channel(`typing-${currentConversationId}`)

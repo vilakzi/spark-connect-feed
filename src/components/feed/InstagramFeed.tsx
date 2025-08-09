@@ -25,7 +25,7 @@ export const InstagramFeed = () => {
 
       if (!error && data) {
         setMediaPosts(
-          data.map((item: any) => ({
+          data.map((item: { id: string; content_url: string; post_type: 'image' | 'video'; caption?: string; created_at?: string }) => ({
             id: item.id,
             media_url: item.content_url,
             media_type: item.post_type,

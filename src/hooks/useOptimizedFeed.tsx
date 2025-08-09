@@ -25,6 +25,11 @@ interface FeedQueryResult {
   hasMore: boolean;
 }
 
+interface InfiniteQueryData {
+  pages: FeedQueryResult[];
+  pageParams: (number | undefined)[];
+}
+
 const POSTS_PER_PAGE = 10;
 
 export const useOptimizedFeed = () => {
@@ -102,7 +107,7 @@ export const useOptimizedFeed = () => {
         hasMore: transformedPosts.length === POSTS_PER_PAGE
       };
     }
-  }, [user?.id]);
+  }, [user]);
 
   // Infinite query for feed
   const {
@@ -154,12 +159,12 @@ export const useOptimizedFeed = () => {
     if (!user) return;
 
     // Optimistic update
-    queryClient.setQueryData(feedCacheKey, (oldData: any) => {
+    queryClient.setQueryData(feedCacheKey, (oldData: InfiniteQueryData | undefined) => {
       if (!oldData) return oldData;
       
       return {
         ...oldData,
-        pages: oldData.pages.map((page: any) => ({
+        pages: oldData.pages.map((page: FeedQueryResult) => ({
           ...page,
           posts: page.posts.map((post: FeedPost) =>
             post.post_id === postId
@@ -192,7 +197,7 @@ export const useOptimizedFeed = () => {
         variant: "destructive"
       });
     }
-  }, [user?.id, queryClient, toast]);
+  }, [user, queryClient, toast, feedCacheKey]);
 
   // Track post view
   const trackView = useCallback(async (postId: string, duration: number = 3) => {
@@ -208,7 +213,7 @@ export const useOptimizedFeed = () => {
     } catch (error) {
       console.error('Error tracking view:', error);
     }
-  }, [user?.id]);
+  }, [user]);
 
   // Share post
   const sharePost = useCallback(async (post: FeedPost) => {
@@ -230,12 +235,12 @@ export const useOptimizedFeed = () => {
       }
 
       // Optimistic update
-      queryClient.setQueryData(feedCacheKey, (oldData: any) => {
+      queryClient.setQueryData(feedCacheKey, (oldData: InfiniteQueryData | undefined) => {
         if (!oldData) return oldData;
         
         return {
           ...oldData,
-          pages: oldData.pages.map((page: any) => ({
+          pages: oldData.pages.map((page: FeedQueryResult) => ({
             ...page,
             posts: page.posts.map((p: FeedPost) =>
               p.post_id === post.post_id
@@ -254,7 +259,7 @@ export const useOptimizedFeed = () => {
     } catch (error) {
       console.error('Error sharing post:', error);
     }
-  }, [user?.id, queryClient, toast]);
+  }, [user, queryClient, toast, feedCacheKey]);
 
   // Update preferences
   const updatePreferences = useCallback(async (newPreferences: {
@@ -292,12 +297,12 @@ export const useOptimizedFeed = () => {
         variant: "destructive"
       });
     }
-  }, [user?.id, queryClient, toast]);
+  }, [user, queryClient, toast, feedCacheKey, preferencesKey]);
 
   // Refresh feed
   const refreshFeed = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: feedCacheKey });
-  }, [queryClient]);
+  }, [queryClient, feedCacheKey]);
 
   // Prefetch next page when user is near the end
   const prefetchNextPage = useCallback(() => {

@@ -7,10 +7,10 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string, displayName: string) => Promise<{ error: any }>;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signInWithGoogle: () => Promise<{ error: any }>;
-  signOut: () => Promise<{ error: any }>;
+  signUp: (email: string, password: string, displayName: string) => Promise<{ error: Error | null }>;
+  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signInWithGoogle: () => Promise<{ error: Error | null }>;
+  signOut: () => Promise<{ error: Error | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -143,13 +143,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
 
       return { error };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       toast({
         title: "Google sign in failed",
-        description: "Please try again or check your internet connection",
+        description: errorMessage || "Please try again or check your internet connection",
         variant: "destructive"
       });
-      return { error };
+      return { error: error instanceof Error ? error : new Error(errorMessage) };
     }
   };
 

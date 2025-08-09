@@ -26,6 +26,17 @@ interface ContentBatch {
   mixedContent: FeedPost[];
 }
 
+interface FeedQueryResult {
+  posts: FeedPost[];
+  nextCursor?: number;
+  hasMore: boolean;
+}
+
+interface InfiniteQueryData {
+  pages: FeedQueryResult[];
+  pageParams: (number | undefined)[];
+}
+
 const POSTS_PER_BATCH = 8;
 const REFRESH_INTERVAL = 30000; // 30 seconds
 const CONTENT_MIX_RATIO = 0.3; // 30% admin content, 70% user content
@@ -290,12 +301,12 @@ export const useRealtimeFeed = () => {
     if (!user) return;
 
     // Optimistic update
-    queryClient.setQueryData(feedCacheKey, (oldData: any) => {
+    queryClient.setQueryData(feedCacheKey, (oldData: InfiniteQueryData | undefined) => {
       if (!oldData) return oldData;
       
       return {
         ...oldData,
-        pages: oldData.pages.map((page: any) => ({
+        pages: oldData.pages.map((page: FeedQueryResult) => ({
           ...page,
           posts: page.posts.map((post: FeedPost) =>
             post.post_id === postId
@@ -364,12 +375,12 @@ export const useRealtimeFeed = () => {
       });
 
       // Optimistic update
-      queryClient.setQueryData(feedCacheKey, (oldData: any) => {
+      queryClient.setQueryData(feedCacheKey, (oldData: InfiniteQueryData | undefined) => {
         if (!oldData) return oldData;
         
         return {
           ...oldData,
-          pages: oldData.pages.map((page: any) => ({
+          pages: oldData.pages.map((page: FeedQueryResult) => ({
             ...page,
             posts: page.posts.map((p: FeedPost) =>
               p.post_id === post.post_id

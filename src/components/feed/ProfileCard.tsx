@@ -13,7 +13,11 @@ interface Profile {
   profile_image_url?: string | null;
   profile_images?: string[] | null;
   interests?: string[] | null;
-  verifications?: any;
+  verifications?: {
+    photo_verified?: boolean;
+    email_verified?: boolean;
+    phone_verified?: boolean;
+  };
   last_active?: string | null;
   is_blocked?: boolean;
   photo_verified?: boolean;
@@ -30,7 +34,7 @@ export const ProfileCard = ({ profile, onLike, onMessage }: ProfileCardProps) =>
   const primaryImage = profile.profile_image_url || profile.profile_images?.[0];
   const isVerified = profile.photo_verified || 
     (profile.verifications && typeof profile.verifications === 'object' && 
-     (profile.verifications.photoVerified || profile.verifications.emailVerified));
+     (profile.verifications.photo_verified || profile.verifications.email_verified));
   const isOnline = isUserOnline(profile.id);
 
   return (
