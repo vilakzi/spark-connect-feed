@@ -137,7 +137,7 @@ export const ChatInterface = ({ conversationId, onBack }: ChatInterfaceProps) =>
               <MessageBubble 
                 key={message.id} 
                 message={message}
-                isOwnMessage={message.sender_id === conversation.participant1_id || message.sender_id === conversation.participant2_id}
+                isOwnMessage={message.sender_id === conversation.participant_one_id || message.sender_id === conversation.participant_two_id}
               />
             ))
           )}

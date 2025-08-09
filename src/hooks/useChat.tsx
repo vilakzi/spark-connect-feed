@@ -17,8 +17,8 @@ interface Message {
 interface Conversation {
   id: string;
   match_id: string;
-  participant1_id: string;
-  participant2_id: string;
+  participant_one_id: string;
+  participant_two_id: string;
   last_message_id?: string;
   last_message_at?: string;
   created_at: string;
@@ -60,7 +60,7 @@ export const useChat = () => {
       const { data, error } = await supabase
         .from('conversations')
         .select('*')
-        .or(`participant1_id.eq.${user.id},participant2_id.eq.${user.id}`)
+        .or(`participant_one_id.eq.${user.id},participant_two_id.eq.${user.id}`)
         .order('updated_at', { ascending: false });
 
       if (error) {
@@ -72,9 +72,9 @@ export const useChat = () => {
       // Enrich conversations with other user data and unread count
         const enrichedConversations = await Promise.all(
         data.map(async (conv: any) => {
-          const otherUserId = conv.participant1_id === user.id 
-            ? conv.participant2_id 
-            : conv.participant1_id;
+          const otherUserId = conv.participant_one_id === user.id 
+            ? conv.participant_two_id 
+            : conv.participant_one_id;
 
           // Get other user profile
           const { data: profileData } = await supabase
@@ -103,8 +103,8 @@ export const useChat = () => {
           return {
             id: conv.id,
             match_id: conv.match_id,
-            participant1_id: conv.participant1_id,
-            participant2_id: conv.participant2_id,
+            participant_one_id: conv.participant_one_id,
+            participant_two_id: conv.participant_two_id,
             last_message_id: conv.last_message_id,
             last_message_at: conv.last_message_at,
             created_at: conv.created_at,
@@ -255,7 +255,15 @@ export const useChat = () => {
         event: '*',
         schema: 'public',
         table: 'conversations',
-        filter: `or(participant1_id.eq.${user.id},participant2_id.eq.${user.id})`
+        filter: `participant_one_id=eq.${user.id}`
+      }, () => {
+        fetchConversations();
+      })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'conversations',
+        filter: `participant_two_id=eq.${user.id}`
       }, () => {
         fetchConversations();
       })
