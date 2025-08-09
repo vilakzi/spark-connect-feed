@@ -8,7 +8,7 @@ import { Card, CardContent } from '../ui/card';
 interface FeedItemBase {
   id: string | number;
   type: 'profile' | 'content';
-  [key: string]: any;
+  data?: unknown;
 }
 
 interface ProfileFeedItem extends FeedItemBase {
@@ -19,7 +19,17 @@ interface ProfileFeedItem extends FeedItemBase {
 
 interface ContentFeedItem extends FeedItemBase {
   type: 'content';
-  // Add other Content properties as needed
+  title: string;
+  description?: string;
+  file_url: string;
+  thumbnail_url?: string;
+  content_type: string;
+  view_count: number;
+  like_count: number;
+  share_count: number;
+  is_promoted: boolean;
+  category?: string;
+  created_at: string;
 }
 
 type FeedItem = ProfileFeedItem | ContentFeedItem;
@@ -92,7 +102,7 @@ export function Feed({
                 />
               ) : (
                 <ContentCard
-                  content={item as any}
+                  content={item as ContentFeedItem}
                   onLike={() => handleContentLike(item.id)}
                   onShare={() => handleShare(item)}
                 />

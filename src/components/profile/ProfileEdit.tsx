@@ -39,6 +39,15 @@ interface ProfileEditProps {
   onBack: () => void;
 }
 
+const defaultPrivacySettings = {
+  showContact: false,
+  showLastSeen: true,
+  showLocation: true,
+  allowMessages: true,
+  showOnlineStatus: true,
+  profileVisibility: 'public' as const
+};
+
 export const ProfileEdit = ({ onBack }: ProfileEditProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -54,14 +63,7 @@ export const ProfileEdit = ({ onBack }: ProfileEditProps) => {
     gender: '',
     interests: [],
     profile_images: [],
-    privacy_settings: {
-      showContact: false,
-      showLastSeen: true,
-      showLocation: true,
-      allowMessages: true,
-      showOnlineStatus: true,
-      profileVisibility: 'public'
-    }
+    privacy_settings: defaultPrivacySettings
   });
 
   // Load existing profile data
@@ -92,8 +94,8 @@ export const ProfileEdit = ({ onBack }: ProfileEditProps) => {
             interests: data.interests || [],
             profile_images: data.profile_images || [],
             privacy_settings: typeof data.privacy_settings === 'object' && data.privacy_settings
-              ? { ...formData.privacy_settings, ...data.privacy_settings }
-              : formData.privacy_settings
+              ? { ...defaultPrivacySettings, ...data.privacy_settings }
+              : defaultPrivacySettings
           });
         }
       } catch (error) {

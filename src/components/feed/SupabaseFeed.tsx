@@ -171,7 +171,7 @@ export const SupabaseFeed = () => {
         });
 
       // SMART SHUFFLE ALGORITHM - Randomize content every time
-      const shuffleArray = (array: any[]) => {
+      const shuffleArray = (array: FeedItem[]) => {
         const shuffled = [...array];
         for (let i = shuffled.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));

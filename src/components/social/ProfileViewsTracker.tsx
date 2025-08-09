@@ -25,7 +25,7 @@ export const ProfileViewsTracker = () => {
 
   useEffect(() => {
     getMatchSuggestions();
-  }, []);
+  }, [getMatchSuggestions]);
 
   return (
     <div className="space-y-6">

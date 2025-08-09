@@ -336,7 +336,7 @@ export const PostComposer: React.FC<PostComposerProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium mb-2 block">Privacy</label>
-                <Select value={privacyLevel} onValueChange={(value: any) => setPrivacyLevel(value)}>
+                <Select value={privacyLevel} onValueChange={(value: typeof PRIVACY_OPTIONS[number]['value']) => setPrivacyLevel(value)}>
                   <SelectTrigger>
                     <SelectValue>
                       <div className="flex items-center gap-2">

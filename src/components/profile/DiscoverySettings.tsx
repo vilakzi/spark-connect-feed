@@ -56,7 +56,7 @@ export const DiscoverySettings = () => {
                 key={option.value}
                 variant={preferences.show_me === option.value ? 'default' : 'outline'}
                 size="sm"
-                onClick={() => handleShowMeChange(option.value as any)}
+                onClick={() => handleShowMeChange(option.value as 'men' | 'women' | 'everyone')}
                 disabled={saving}
               >
                 {option.label}

@@ -23,6 +23,18 @@ interface Message {
     display_name: string;
     profile_image_url: string;
   };
+  profiles?: {
+    display_name: string;
+    profile_image_url: string;
+  };
+}
+
+interface TypingIndicator {
+  id: string;
+  user_id: string;
+  conversation_id: string;
+  is_typing: boolean;
+  last_typed_at: string;
 }
 
 interface OptimizedChatInterfaceProps {
@@ -72,7 +84,7 @@ export const OptimizedChatInterface = ({ conversationId, otherUser }: OptimizedC
 
       return data?.map(msg => ({
         ...msg,
-        sender: msg.profiles as any
+        sender: msg.profiles
       })) || [];
     },
     enabled: !!conversationId,
@@ -112,7 +124,7 @@ export const OptimizedChatInterface = ({ conversationId, otherUser }: OptimizedC
       table: 'typing_indicators',
       filter: `conversation_id=eq.${conversationId}`
     }, (payload) => {
-      const typingData = payload.new as any;
+      const typingData = payload.new as TypingIndicator;
       if (typingData.user_id !== user?.id) {
         setIsTyping(typingData.is_typing);
       }

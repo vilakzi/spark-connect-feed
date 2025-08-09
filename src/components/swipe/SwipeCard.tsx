@@ -12,7 +12,12 @@ interface Profile {
   profile_image_url?: string | null;
   profile_images?: string[] | null;
   interests?: string[] | null;
-  verifications?: any;
+  verifications?: {
+    phone?: boolean;
+    email?: boolean;
+    photo?: boolean;
+    social?: boolean;
+  };
   photo_verified?: boolean;
 }
 
@@ -32,7 +37,7 @@ export const SwipeCard = ({ profile, onSwipe, style }: SwipeCardProps) => {
   const primaryImage = profile.profile_image_url || profile.profile_images?.[0];
   const isVerified = profile.photo_verified || 
     (profile.verifications && typeof profile.verifications === 'object' && 
-     (profile.verifications.photoVerified || profile.verifications.emailVerified));
+     (profile.verifications.photo || profile.verifications.email));
 
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);

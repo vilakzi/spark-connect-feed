@@ -29,9 +29,21 @@ interface CompletionItem {
   description: string;
 }
 
+interface Profile {
+  id: string;
+  display_name?: string;
+  age?: number;
+  bio?: string;
+  location?: string;
+  profile_image_url?: string;
+  profile_images?: string[];
+  interests?: string[];
+  photo_verified?: boolean;
+}
+
 export const ProfileCompletion = ({ onEditProfile, onNotificationSettings }: ProfileCompletionProps) => {
   const { user } = useAuth();
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
