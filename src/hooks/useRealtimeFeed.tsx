@@ -6,6 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAdvancedFeedAlgorithm } from './useAdvancedFeedAlgorithm';
 
 interface FeedPost {
+  view_count: number;
   post_id: string;
   content: string;
   media_urls: string[];
@@ -171,7 +172,7 @@ export const useRealtimeFeed = () => {
       console.error('Enhanced feed fetch error:', error);
       throw error;
     }
-  }, [user?.id, mixContentIntelligently]);
+  }, [user, mixContentIntelligently]);
 
   // Background content warming
   const warmBackgroundContent = useCallback(async () => {
@@ -196,7 +197,7 @@ export const useRealtimeFeed = () => {
     } catch (error) {
       console.error('Background content warming failed:', error);
     }
-  }, [user?.id]);
+  }, [user]);
 
   // Enhanced real-time refresh with adaptive intervals
   useEffect(() => {
@@ -266,7 +267,7 @@ export const useRealtimeFeed = () => {
       clearInterval(intervalUpdater);
       supabase.removeChannel(channel);
     };
-  }, [user?.id, warmBackgroundContent, getRefreshInterval]);
+  }, [user, warmBackgroundContent, getRefreshInterval, feedCacheKey, queryClient]);
 
   // Enhanced infinite query with real-time updates
   const {
@@ -293,7 +294,19 @@ export const useRealtimeFeed = () => {
   // Advanced content injection using AI-like algorithm
   const posts = useMemo(() => {
     const mainPosts = feedData?.pages?.flatMap(page => page.posts) || [];
-    return injectContent(mainPosts, backgroundContent);
+    const enrichedMainPosts = mainPosts.map(post => ({
+      ...post,
+      id: post.post_id, // Map post_id to id
+      view_count: post.view_count || 0 // Provide a default value for view_count
+    }));
+
+    const enrichedBackgroundContent = backgroundContent.map(post => ({
+      ...post,
+      id: post.post_id, // Map post_id to id
+      view_count: post.view_count || 0 // Provide a default value for view_count
+    }));
+
+    return injectContent(enrichedMainPosts, enrichedBackgroundContent);
   }, [feedData, backgroundContent, injectContent]);
 
   // Enhanced interaction tracking with optimistic updates
@@ -327,7 +340,7 @@ export const useRealtimeFeed = () => {
       queryClient.invalidateQueries({ queryKey: feedCacheKey });
       console.error('Error liking post:', error);
     }
-  }, [user?.id, queryClient, feedCacheKey]);
+  }, [user, queryClient, feedCacheKey]);
 
   // Enhanced view tracking with duration and behavior tracking
   const trackView = useCallback(async (postId: string, duration: number = 3) => {
@@ -346,7 +359,7 @@ export const useRealtimeFeed = () => {
     } catch (error) {
       console.error('Error tracking view:', error);
     }
-  }, [user?.id, trackUserInteraction]);
+  }, [user, trackUserInteraction]);
 
   // Enhanced share with native sharing
   const sharePost = useCallback(async (post: FeedPost) => {
@@ -394,7 +407,7 @@ export const useRealtimeFeed = () => {
     } catch (error) {
       console.error('Error sharing post:', error);
     }
-  }, [user?.id, queryClient, toast, feedCacheKey]);
+  }, [user, queryClient, toast, feedCacheKey]);
 
   // Intelligent refresh with background content merge
   const refreshFeed = useCallback(() => {

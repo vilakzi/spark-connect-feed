@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import type { RealtimeChannel } from '@supabase/supabase-js';
@@ -44,7 +44,7 @@ export const usePresence = (): PresenceHookReturn => {
     }
   };
 
-  const updatePresence = async () => {
+  const updatePresence = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -62,7 +62,7 @@ export const usePresence = (): PresenceHookReturn => {
     } catch (error) {
       console.error('Error updating presence:', error);
     }
-  };
+  }, [user, updateLastActive]);
 
   const isUserOnline = (userId: string): boolean => {
     return onlineUsers.has(userId);

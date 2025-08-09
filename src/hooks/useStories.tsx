@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -42,7 +42,7 @@ export const useStories = () => {
   const [loading, setLoading] = useState(false);
 
   // Fetch all active stories
-  const fetchStories = async () => {
+  const fetchStories = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -85,10 +85,10 @@ export const useStories = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, toast]);
 
   // Fetch user's own stories
-  const fetchMyStories = async () => {
+  const fetchMyStories = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -105,7 +105,7 @@ export const useStories = () => {
       console.error('Error fetching my stories:', error);
       setMyStories([]);
     }
-  };
+  }, [user]);
 
   // Create a new story
   const createStory = async (contentUrl: string, contentType: string, caption?: string) => {

@@ -128,7 +128,7 @@ export const useOptimizedPresence = () => {
     } catch (error) {
       console.error('Error updating presence:', error);
     }
-  }, [user?.id, addSubscription]);
+  }, [user, addSubscription]);
 
   const startPresenceTracking = useCallback(() => {
     if (!user) return;
@@ -173,7 +173,7 @@ export const useOptimizedPresence = () => {
       updatePresence('offline');
       removeSubscription(`presence_${user.id}`);
     };
-  }, [user?.id, updatePresence, removeSubscription]);
+  }, [user, updatePresence, removeSubscription]);
 
   return {
     updatePresence,
@@ -241,7 +241,7 @@ export const useOptimizedChat = () => {
     } catch (error) {
       console.error('Error sending typing indicator:', error);
     }
-  }, [user?.id]);
+  }, [user]);
 
   return {
     getOrCreateChatConnection,

@@ -98,7 +98,7 @@ export const useProfileViews = () => {
     if (user) {
       fetchProfileViews();
     }
-  }, [user]);
+  }, [user, fetchProfileViews]);
 
   return {
     profileViews,
