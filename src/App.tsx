@@ -8,14 +8,26 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import { AdminRoute } from "@/components/admin/AdminRoute";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import Index from "./pages/Index";
-import Auth from "./pages/Auth";
-import NotFound from "./pages/NotFound";
-import { AdminDashboard } from "./pages/admin/AdminDashboard";
-import { UserManagement } from "./pages/admin/UserManagement";
-import { ContentModeration } from "./pages/admin/ContentModeration";
-import { Analytics } from "./pages/admin/Analytics";
-import { AdminSettings } from "./pages/admin/AdminSettings";
+import { Suspense, lazy } from "react";
+
+// Lazy load pages for code splitting
+const Index = lazy(() => import("./pages/Index"));
+const Auth = lazy(() => import("./pages/Auth"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+
+// Lazy load admin pages
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard").then(module => ({ default: module.AdminDashboard })));
+const UserManagement = lazy(() => import("./pages/admin/UserManagement").then(module => ({ default: module.UserManagement })));
+const ContentModeration = lazy(() => import("./pages/admin/ContentModeration").then(module => ({ default: module.ContentModeration })));
+const Analytics = lazy(() => import("./pages/admin/Analytics").then(module => ({ default: module.Analytics })));
+const AdminSettings = lazy(() => import("./pages/admin/AdminSettings").then(module => ({ default: module.AdminSettings })));
+
+// Loading component for Suspense fallback
+const LoadingSpinner = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+  </div>
+);
 
 // Optimized QueryClient with performance settings
 const queryClient = new QueryClient({
@@ -47,34 +59,36 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <ErrorBoundary>
-              <Routes>
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/" element={
-                  <ProtectedRoute>
-                    <ErrorBoundary>
-                      <Index />
-                    </ErrorBoundary>
-                  </ProtectedRoute>
-                } />
-                
-                {/* Admin Routes */}
-                <Route path="/admin" element={
-                  <AdminRoute>
-                    <ErrorBoundary>
-                      <AdminLayout />
-                    </ErrorBoundary>
-                  </AdminRoute>
-                }>
-                  <Route index element={<AdminDashboard />} />
-                  <Route path="users" element={<UserManagement />} />
-                  <Route path="content" element={<ContentModeration />} />
-                  <Route path="analytics" element={<Analytics />} />
-                  <Route path="settings" element={<AdminSettings />} />
-                </Route>
-                
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
+              <Suspense fallback={<LoadingSpinner />}>
+                <Routes>
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/" element={
+                    <ProtectedRoute>
+                      <ErrorBoundary>
+                        <Index />
+                      </ErrorBoundary>
+                    </ProtectedRoute>
+                  } />
+                  
+                  {/* Admin Routes */}
+                  <Route path="/admin" element={
+                    <AdminRoute>
+                      <ErrorBoundary>
+                        <AdminLayout />
+                      </ErrorBoundary>
+                    </AdminRoute>
+                  }>
+                    <Route index element={<AdminDashboard />} />
+                    <Route path="users" element={<UserManagement />} />
+                    <Route path="content" element={<ContentModeration />} />
+                    <Route path="analytics" element={<Analytics />} />
+                    <Route path="settings" element={<AdminSettings />} />
+                  </Route>
+                  
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
             </ErrorBoundary>
           </BrowserRouter>
         </TooltipProvider>
