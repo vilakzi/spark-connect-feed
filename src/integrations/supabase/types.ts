@@ -117,6 +117,7 @@ export type Database = {
           image_url: string | null
           likes_count: number | null
           media_type: string | null
+          privacy_level: string | null
           shares_count: number | null
           updated_at: string
           user_id: string
@@ -130,6 +131,7 @@ export type Database = {
           image_url?: string | null
           likes_count?: number | null
           media_type?: string | null
+          privacy_level?: string | null
           shares_count?: number | null
           updated_at?: string
           user_id: string
@@ -143,6 +145,7 @@ export type Database = {
           image_url?: string | null
           likes_count?: number | null
           media_type?: string | null
+          privacy_level?: string | null
           shares_count?: number | null
           updated_at?: string
           user_id?: string
@@ -224,14 +227,65 @@ export type Database = {
           },
         ]
       }
+      user_relationships: {
+        Row: {
+          created_at: string
+          follower_id: string
+          following_id: string
+          id: string
+          relationship_type: string | null
+        }
+        Insert: {
+          created_at?: string
+          follower_id: string
+          following_id: string
+          id?: string
+          relationship_type?: string | null
+        }
+        Update: {
+          created_at?: string
+          follower_id?: string
+          following_id?: string
+          id?: string
+          relationship_type?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      can_view_post: {
+        Args: {
+          post_privacy_level: string
+          post_user_id: string
+          viewer_id: string
+        }
+        Returns: boolean
+      }
       can_view_profile: {
         Args: { profile_user_id: string; viewer_id: string }
         Returns: boolean
+      }
+      get_feed_posts: {
+        Args: { limit_count?: number; offset_count?: number; viewer_id: string }
+        Returns: {
+          author_display_name: string
+          author_profile_image: string
+          comments_count: number
+          content: string
+          created_at: string
+          id: string
+          image_url: string
+          likes_count: number
+          media_type: string
+          privacy_level: string
+          shares_count: number
+          updated_at: string
+          user_id: string
+          video_url: string
+        }[]
       }
       get_filtered_profile: {
         Args: { target_user_id: string }
