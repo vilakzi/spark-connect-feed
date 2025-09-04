@@ -229,7 +229,25 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      can_view_profile: {
+        Args: { profile_user_id: string; viewer_id: string }
+        Returns: boolean
+      }
+      get_filtered_profile: {
+        Args: { target_user_id: string }
+        Returns: {
+          age: number
+          bio: string
+          created_at: string
+          display_name: string
+          id: string
+          interests: string[]
+          location: string
+          profile_image_url: string
+          updated_at: string
+          user_id: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
