@@ -173,12 +173,12 @@ export const PostComposer: React.FC<PostComposerProps> = ({
 
     const postData = {
       content: content.trim(),
-      mediaFiles,
+      media: mediaFiles,
       location: location.trim(),
       hashtags,
       mentions,
-      privacyLevel,
-      scheduledAt,
+      privacy: privacyLevel,
+      scheduledDate: scheduledAt,
       isDraft
     };
 

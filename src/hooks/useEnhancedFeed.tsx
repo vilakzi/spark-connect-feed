@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from './useAuth';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -32,6 +32,7 @@ export const useEnhancedFeed = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
+  const lastPostRef = useRef<HTMLDivElement>(null);
 
   const trackUserInteraction = async (postId: string, interactionType: 'like' | 'comment' | 'share' | 'view') => {
     // Mock interaction tracking
@@ -151,17 +152,47 @@ export const useEnhancedFeed = () => {
     }
   }, [user]);
 
+  const likePost = useCallback(async (postId: string) => {
+    try {
+      const { error } = await supabase
+        .from('likes')
+        .insert({ post_id: postId, user_id: user?.id });
+      
+      if (!error) {
+        setPosts(prev => prev.map(post => 
+          post.id === postId 
+            ? { ...post, likes_count: post.likes_count + 1 }
+            : post
+        ));
+      }
+    } catch (err) {
+      console.error('Error liking post:', err);
+    }
+  }, [user?.id]);
+
+  const sharePost = useCallback(async (postId: string) => {
+    await trackUserInteraction(postId, 'share');
+  }, []);
+
+  const setupViewTracking = useCallback(() => {
+    // Mock function for view tracking
+  }, []);
+
   return {
     posts,
     loading,
     error,
     hasMore,
+    lastPostRef,
     trackUserInteraction,
     getFeedPosts,
     getPersonalizedFeed,
     getEngagementAnalytics,
     optimizeFeedOrder,
     loadMorePosts,
-    refreshFeed
+    refreshFeed,
+    likePost,
+    sharePost,
+    setupViewTracking
   };
 };

@@ -99,10 +99,9 @@ export const EnhancedFeedCard: React.FC<EnhancedFeedCardProps> = ({
   // Setup view tracking
   useEffect(() => {
     if (cardRef.current) {
-      const cleanup = setupViewTracking(cardRef.current, post.post_id);
-      return cleanup;
+      setupViewTracking();
     }
-  }, [setupViewTracking, post.post_id]);
+  }, [setupViewTracking]);
 
   // Enhanced keyboard controls for fullscreen video
   useEffect(() => {
@@ -196,8 +195,8 @@ export const EnhancedFeedCard: React.FC<EnhancedFeedCardProps> = ({
   }, [isLiked, likePost, post.post_id]);
 
   const handleShare = useCallback(() => {
-    sharePost(post);
-  }, [sharePost, post]);
+    sharePost(post.post_id);
+  }, [sharePost, post.post_id]);
 
   const handleDoubleClick = useCallback((e: React.MouseEvent) => {
     // Double tap to like (mobile-friendly)

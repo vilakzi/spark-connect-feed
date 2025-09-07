@@ -72,8 +72,20 @@ export const EnhancedFeed = () => {
             <>
               {posts.map((post, index) => (
                 <EnhancedFeedCard
-                  key={post.post_id}
-                  post={post}
+                  key={post.id}
+                  post={{
+                    ...post,
+                    post_id: post.id,
+                    media_urls: post.media_urls || [],
+                    media_types: post.media_types || [],
+                    thumbnails: [],
+                    user_display_name: post.author_display_name || 'Anonymous',
+                    user_avatar: post.author_profile_image || '',
+                    like_count: post.likes_count,
+                    comment_count: post.comments_count,
+                    share_count: post.shares_count,
+                    relevance_score: post.engagement_score || 0
+                  }}
                   isLast={index === posts.length - 1}
                 />
               ))}

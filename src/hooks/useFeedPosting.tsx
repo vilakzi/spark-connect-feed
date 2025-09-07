@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { toast } from '@/hooks/use-toast';
+import { useToast } from '@/hooks/use-toast';
 
 interface MediaFile {
   file: File;
@@ -13,43 +13,43 @@ interface MediaFile {
 
 interface PostData {
   content: string;
-  mediaFiles: MediaFile[];
+  media: MediaFile[];
   location?: string;
-  hashtags: string[];
-  mentions: string[];
-  privacyLevel: 'public' | 'friends' | 'private';
-  scheduledAt?: Date;
-  isDraft: boolean;
+  hashtags?: string[];
+  mentions?: string[];
+  privacy?: 'public' | 'friends' | 'private';
+  scheduledDate?: Date;
+  isDraft?: boolean;
 }
 
 export const useFeedPosting = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
 
   // Compress image for mobile optimization
-  const compressImage = useCallback((file: File, quality: number = 0.8): Promise<File> => {
+  const compressImage = useCallback(async (file: File, quality: number = 0.8): Promise<File> => {
     return new Promise((resolve) => {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       const img = new Image();
       
       img.onload = () => {
-        // Calculate optimal dimensions for mobile
-        const maxWidth = window.innerWidth > 768 ? 1080 : 720;
-        const maxHeight = window.innerWidth > 768 ? 1080 : 720;
+        const MAX_WIDTH = 1920;
+        const MAX_HEIGHT = 1080;
         
         let { width, height } = img;
         
         if (width > height) {
-          if (width > maxWidth) {
-            height = (height * maxWidth) / width;
-            width = maxWidth;
+          if (width > MAX_WIDTH) {
+            height = (height * MAX_WIDTH) / width;
+            width = MAX_WIDTH;
           }
         } else {
-          if (height > maxHeight) {
-            width = (width * maxHeight) / height;
-            height = maxHeight;
+          if (height > MAX_HEIGHT) {
+            width = (width * MAX_HEIGHT) / height;
+            height = MAX_HEIGHT;
           }
         }
         
@@ -62,7 +62,7 @@ export const useFeedPosting = () => {
           (blob) => {
             if (blob) {
               const compressedFile = new File([blob], file.name, {
-                type: 'image/jpeg',
+                type: file.type,
                 lastModified: Date.now()
               });
               resolve(compressedFile);
@@ -70,7 +70,7 @@ export const useFeedPosting = () => {
               resolve(file);
             }
           },
-          'image/jpeg',
+          file.type,
           quality
         );
       };
@@ -80,93 +80,88 @@ export const useFeedPosting = () => {
   }, []);
 
   // Generate video thumbnail
-  const generateVideoThumbnail = useCallback((file: File): Promise<string> => {
+  const generateVideoThumbnail = useCallback(async (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const video = document.createElement('video');
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       
-      video.onloadedmetadata = () => {
+      video.addEventListener('loadedmetadata', () => {
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
-        video.currentTime = 1; // Get frame at 1 second
-      };
+        video.currentTime = Math.min(5, video.duration / 4); // 5 seconds or 1/4 duration
+      });
       
-      video.onseeked = () => {
-        ctx?.drawImage(video, 0, 0);
-        canvas.toBlob((blob) => {
-          if (blob) {
-            const url = URL.createObjectURL(blob);
-            resolve(url);
-          } else {
-            reject(new Error('Failed to generate thumbnail'));
-          }
-        }, 'image/jpeg', 0.8);
-      };
+      video.addEventListener('seeked', () => {
+        if (ctx) {
+          ctx.drawImage(video, 0, 0);
+          const thumbnail = canvas.toDataURL('image/jpeg', 0.8);
+          resolve(thumbnail);
+        } else {
+          reject(new Error('Failed to get canvas context'));
+        }
+      });
       
-      video.onerror = () => reject(new Error('Video load error'));
+      video.addEventListener('error', () => {
+        reject(new Error('Failed to load video'));
+      });
+      
       video.src = URL.createObjectURL(file);
     });
   }, []);
 
-  // Upload single media file
+  // Upload media file to Supabase storage
   const uploadMediaFile = useCallback(async (
-    mediaFile: MediaFile, 
+    mediaFile: MediaFile,
     postId: string,
     index: number
   ): Promise<{ mediaUrl: string; thumbnailUrl?: string }> => {
-    if (!user) throw new Error('User not authenticated');
-
-    const fileExt = mediaFile.file.name.split('.').pop();
-    const fileName = `${postId}/${index}.${fileExt}`;
-    const filePath = `posts/${fileName}`;
-
-    // Use compressed file if available
+    const fileExtension = mediaFile.file.name.split('.').pop();
+    const fileName = `${postId}_${index}.${fileExtension}`;
+    const bucketName = mediaFile.type.startsWith('video/') ? 'videos' : 'images';
+    
+    // Upload main file
     const fileToUpload = mediaFile.compressed || mediaFile.file;
-
     const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('posts')
-      .upload(filePath, fileToUpload, {
-        cacheControl: '3600',
-        upsert: false
-      });
-
+      .from(bucketName)
+      .upload(fileName, fileToUpload);
+    
     if (uploadError) throw uploadError;
-
+    
     const { data: { publicUrl } } = supabase.storage
-      .from('posts')
-      .getPublicUrl(uploadData.path);
-
+      .from(bucketName)
+      .getPublicUrl(fileName);
+    
     let thumbnailUrl: string | undefined;
-
-    // Upload thumbnail for videos
-    if (mediaFile.type.startsWith('video/') && mediaFile.thumbnail) {
+    
+    // Upload thumbnail if it exists
+    if (mediaFile.thumbnail) {
+      const thumbnailFileName = `${postId}_${index}_thumb.jpg`;
       const thumbnailBlob = await fetch(mediaFile.thumbnail).then(r => r.blob());
-      const thumbnailFile = new File([thumbnailBlob], `${postId}_thumb_${index}.jpg`, { type: 'image/jpeg' });
       
-      const { data: thumbData, error: thumbError } = await supabase.storage
-        .from('posts')
-        .upload(`posts/${postId}/thumb_${index}.jpg`, thumbnailFile);
-
-      if (!thumbError && thumbData) {
+      const { error: thumbError } = await supabase.storage
+        .from('thumbnails')
+        .upload(thumbnailFileName, thumbnailBlob);
+      
+      if (!thumbError) {
         const { data: { publicUrl: thumbUrl } } = supabase.storage
-          .from('posts')
-          .getPublicUrl(thumbData.path);
+          .from('thumbnails')
+          .getPublicUrl(thumbnailFileName);
         thumbnailUrl = thumbUrl;
       }
     }
-
+    
     return { mediaUrl: publicUrl, thumbnailUrl };
-  }, [user]);
+  }, []);
 
-  // Process hashtags and mentions
+  // Extract hashtags and mentions from content
   const extractHashtagsAndMentions = useCallback((content: string) => {
-    const hashtags = Array.from(content.matchAll(/#(\w+)/g), m => m[1]);
-    const mentions = Array.from(content.matchAll(/@(\w+)/g), m => m[1]);
+    const hashtags = content.match(/#[\w]+/g)?.map(tag => tag.slice(1)) || [];
+    const mentions = content.match(/@[\w]+/g)?.map(mention => mention.slice(1)) || [];
     return { hashtags, mentions };
   }, []);
 
-  // Create post
+  // Main function to create a post
   const createPost = useCallback(async (postData: PostData): Promise<string | null> => {
     if (!user) {
       toast({
@@ -178,29 +173,21 @@ export const useFeedPosting = () => {
     }
 
     setUploading(true);
-    
-    try {
-      // Extract hashtags and mentions from content
-      const { hashtags: extractedHashtags, mentions: extractedMentions } = 
-        extractHashtagsAndMentions(postData.content);
-      
-      const allHashtags = [...new Set([...postData.hashtags, ...extractedHashtags])];
-      const allMentions = [...new Set([...postData.mentions, ...extractedMentions])];
+    setUploadProgress({});
 
-      // Process media files
+    try {
+      // Step 1: Process media files (compress images, generate video thumbnails)
       const processedMedia: MediaFile[] = [];
       
-      for (const [index, mediaFile] of postData.mediaFiles.entries()) {
+      for (const [index, mediaFile] of postData.media.entries()) {
         const progressKey = `media_${index}`;
-        setUploadProgress(prev => ({ ...prev, [progressKey]: 10 }));
-
+        setUploadProgress(prev => ({ ...prev, [progressKey]: 20 }));
+        
         if (mediaFile.type.startsWith('image/')) {
-          // Compress image
           const compressed = await compressImage(mediaFile.file);
           processedMedia.push({ ...mediaFile, compressed });
           setUploadProgress(prev => ({ ...prev, [progressKey]: 40 }));
         } else if (mediaFile.type.startsWith('video/')) {
-          // Generate thumbnail for video
           const thumbnail = await generateVideoThumbnail(mediaFile.file);
           processedMedia.push({ ...mediaFile, thumbnail });
           setUploadProgress(prev => ({ ...prev, [progressKey]: 40 }));
@@ -209,48 +196,33 @@ export const useFeedPosting = () => {
         }
       }
 
-      // Create post record
-      const { data: postRecord, error: postError } = await supabase
-        .from('feed_posts')
+      // Step 2: Extract hashtags and mentions
+      const extractedData = extractHashtagsAndMentions(postData.content);
+
+      // Step 3: Insert the new post record
+      const { data: newPost, error: postError } = await supabase
+        .from('posts')
         .insert({
-          user_id: user.id,
           content: postData.content,
-          location: postData.location,
-          hashtags: allHashtags,
-          mentions: allMentions,
-          privacy_level: postData.privacyLevel,
-          scheduled_at: postData.scheduledAt?.toISOString(),
-          is_draft: postData.isDraft,
-          published_at: postData.isDraft || postData.scheduledAt ? null : new Date().toISOString(),
-          metadata: {
-            device: navigator.userAgent,
-            location: postData.location
-          }
+          privacy_level: postData.privacy || 'public',
+          user_id: user.id
         })
         .select()
         .single();
 
       if (postError) throw postError;
 
+      const postId = newPost.id;
       setUploadProgress(prev => ({ ...prev, post_created: 60 }));
 
-      // Upload media files
-      const mediaUrls: string[] = [];
-      const mediaTypes: string[] = [];
-      const thumbnails: string[] = [];
-
+      // Step 4: Upload media files if any
+      const mediaResults: Array<{ mediaUrl: string; thumbnailUrl?: string }> = [];
+      
       for (const [index, mediaFile] of processedMedia.entries()) {
         const progressKey = `media_${index}`;
         
-        const { mediaUrl, thumbnailUrl } = await uploadMediaFile(
-          mediaFile, 
-          postRecord.id, 
-          index
-        );
-        
-        mediaUrls.push(mediaUrl);
-        mediaTypes.push(mediaFile.type);
-        if (thumbnailUrl) thumbnails.push(thumbnailUrl);
+        const result = await uploadMediaFile(mediaFile, postId, index);
+        mediaResults.push(result);
         
         setUploadProgress(prev => ({ 
           ...prev, 
@@ -258,17 +230,22 @@ export const useFeedPosting = () => {
         }));
       }
 
-      // Update post with media URLs
-      const { error: updateError } = await supabase
-        .from('feed_posts')
-        .update({
-          media_urls: mediaUrls,
-          media_types: mediaTypes,
-          thumbnails: thumbnails
-        })
-        .eq('id', postRecord.id);
+      // Step 5: Update the post with media URLs
+      if (mediaResults.length > 0) {
+        const mediaUrls = mediaResults.map(result => result.mediaUrl);
+        const firstMediaUrl = mediaUrls[0];
+        const isVideo = postData.media[0]?.type.startsWith('video');
+        
+        const { error: updateError } = await supabase
+          .from('posts')
+          .update({
+            [isVideo ? 'video_url' : 'image_url']: firstMediaUrl,
+            media_type: postData.media[0]?.type || 'text'
+          })
+          .eq('id', postId);
 
-      if (updateError) throw updateError;
+        if (updateError) throw updateError;
+      }
 
       setUploadProgress(prev => ({ ...prev, upload_complete: 100 }));
 
@@ -279,7 +256,7 @@ export const useFeedPosting = () => {
           : "Your post is now live on the feed"
       });
 
-      return postRecord.id;
+      return postId;
 
     } catch (error) {
       console.error('Error creating post:', error);
@@ -293,18 +270,17 @@ export const useFeedPosting = () => {
       setUploading(false);
       setUploadProgress({});
     }
-  }, [user, compressImage, generateVideoThumbnail, uploadMediaFile, extractHashtagsAndMentions]);
+  }, [user, compressImage, generateVideoThumbnail, uploadMediaFile, extractHashtagsAndMentions, toast]);
 
   // Get user's drafts
   const getDrafts = useCallback(async () => {
     if (!user) return [];
 
     const { data, error } = await supabase
-      .from('feed_posts')
+      .from('posts')
       .select('*')
       .eq('user_id', user.id)
-      .eq('is_draft', true)
-      .order('updated_at', { ascending: false });
+      .order('created_at', { ascending: false });
 
     if (error) {
       console.error('Error fetching drafts:', error);
