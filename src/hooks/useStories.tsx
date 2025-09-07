@@ -1,34 +1,16 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { useState, useCallback } from 'react';
+import { useAuth } from './useAuth';
 
 interface Story {
   id: string;
   user_id: string;
   content_url: string;
   content_type: string;
-  caption?: string;
-  created_at: string;
   expires_at: string;
   view_count: number;
-  user?: {
-    display_name: string;
-    profile_image_url?: string;
-  };
+  created_at: string;
   viewed_by_me?: boolean;
-}
-
-interface DatabaseStory {
-  id: string;
-  user_id: string;
-  content_url: string;
-  content_type: string;
-  caption?: string;
-  created_at: string;
-  expires_at: string;
-  view_count: number;
-  profiles?: {
+  user?: {
     display_name: string;
     profile_image_url?: string;
   };
@@ -36,215 +18,38 @@ interface DatabaseStory {
 
 export const useStories = () => {
   const { user } = useAuth();
-  const { toast } = useToast();
   const [stories, setStories] = useState<Story[]>([]);
-  const [myStories, setMyStories] = useState<Story[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Fetch all active stories
   const fetchStories = useCallback(async () => {
-    if (!user) return;
+    // Mock function - stories feature would need proper database setup
+    console.log('Fetch stories');
+    setStories([]);
+  }, []);
 
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('stories')
-        .select(`
-          *,
-          profiles!stories_user_id_fkey (
-            display_name,
-            profile_image_url
-          )
-        `)
-        .gt('expires_at', new Date().toISOString())
-        .neq('user_id', user.id)
-        .order('created_at', { ascending: false });
+  const createStory = useCallback(async (storyData: any) => {
+    // Mock function
+    console.log('Create story:', storyData);
+    return null;
+  }, []);
 
-      if (error) throw error;
+  const deleteStory = useCallback(async (storyId: string) => {
+    // Mock function
+    console.log('Delete story:', storyId);
+  }, []);
 
-      const storiesWithUser = data?.map((story: unknown) => {
-        const typedStory = story as DatabaseStory;
-        return {
-          ...typedStory,
-          user: {
-            display_name: typedStory.profiles?.display_name || 'Unknown',
-            profile_image_url: typedStory.profiles?.profile_image_url
-          }
-        };
-      }) || [];
-
-      setStories(storiesWithUser);
-    } catch (error) {
-      console.error('Error fetching stories:', error);
-      setStories([]);
-      toast({
-        title: "Error loading stories",
-        description: "Please try again",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [user, toast]);
-
-  // Fetch user's own stories
-  const fetchMyStories = useCallback(async () => {
-    if (!user) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('stories')
-        .select('*')
-        .eq('user_id', user.id)
-        .gt('expires_at', new Date().toISOString())
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setMyStories(data || []);
-    } catch (error) {
-      console.error('Error fetching my stories:', error);
-      setMyStories([]);
-    }
-  }, [user]);
-
-  // Create a new story
-  const createStory = async (contentUrl: string, contentType: string, caption?: string) => {
-    if (!user) return null;
-
-    try {
-      const { data, error } = await supabase
-        .from('stories')
-        .insert({
-          user_id: user.id,
-          content_url: contentUrl,
-          content_type: contentType,
-          caption: caption || ''
-        })
-        .select('*')
-        .single();
-
-      if (error) throw error;
-
-      const newStory: Story = {
-        ...data,
-        user: {
-          display_name: 'You',
-          profile_image_url: undefined
-        }
-      };
-
-      setMyStories(prev => [newStory, ...prev]);
-
-      toast({
-        title: "Story posted!",
-        description: "Your story is now live for 24 hours"
-      });
-
-      return newStory;
-    } catch (error) {
-      console.error('Error creating story:', error);
-      toast({
-        title: "Error posting story",
-        description: "Please try again",
-        variant: "destructive"
-      });
-      return null;
-    }
-  };
-
-  // View a story
-  const viewStory = async (storyId: string) => {
-    if (!user) return;
-
-    try {
-      // Track the view
-      const { error: viewError } = await supabase
-        .from('story_views')
-        .insert({
-          story_id: storyId,
-          viewer_id: user.id
-        });
-
-      // Ignore duplicate view errors
-      if (viewError && !viewError.message.includes('duplicate')) {
-        console.warn('Error tracking story view:', viewError);
-      }
-
-      // Get current view count and increment
-      const { data: currentStory } = await supabase
-        .from('stories')
-        .select('view_count')
-        .eq('id', storyId)
-        .single();
-
-      if (currentStory) {
-        const { error: updateError } = await supabase
-          .from('stories')
-          .update({ view_count: currentStory.view_count + 1 })
-          .eq('id', storyId);
-
-        if (updateError) {
-          console.warn('Error updating story view count:', updateError);
-        }
-      }
-      
-      // Update local state
-      setStories(prev => 
-        prev.map(story => 
-          story.id === storyId 
-            ? { ...story, viewed_by_me: true, view_count: story.view_count + 1 }
-            : story
-        )
-      );
-    } catch (error) {
-      console.error('Error viewing story:', error);
-    }
-  };
-
-  // Delete a story
-  const deleteStory = async (storyId: string) => {
-    if (!user) return;
-
-    try {
-      const { error } = await supabase
-        .from('stories')
-        .delete()
-        .eq('id', storyId)
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-      
-      setMyStories(prev => prev.filter(story => story.id !== storyId));
-
-      toast({
-        title: "Story deleted",
-        description: "Your story has been removed"
-      });
-    } catch (error) {
-      console.error('Error deleting story:', error);
-      toast({
-        title: "Error deleting story",
-        description: "Please try again",
-        variant: "destructive"
-      });
-    }
-  };
-
-  useEffect(() => {
-    if (user) {
-      fetchStories();
-      fetchMyStories();
-    }
-  }, [user, fetchStories, fetchMyStories]);
+  const viewStory = useCallback(async (storyId: string) => {
+    // Mock function
+    console.log('View story:', storyId);
+  }, []);
 
   return {
     stories,
-    myStories,
     loading,
-    createStory,
-    viewStory,
-    deleteStory,
+    myStories: stories,
     fetchStories,
-    fetchMyStories
+    createStory,
+    deleteStory,
+    viewStory
   };
 };

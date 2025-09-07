@@ -31,7 +31,7 @@ export const useReporting = () => {
         .from('user_reports')
         .insert({
           reporter_id: user.id,
-          reported_user_id: reportedUserId,
+          reported_id: reportedUserId,
           reason: reportData.reason,
           description: reportData.description,
           evidence_urls: reportData.evidenceUrls || []

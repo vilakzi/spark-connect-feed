@@ -47,6 +47,7 @@ export const VirtualizedFeed = () => {
         like_count: 0,
         comment_count: 0,
         share_count: 0,
+        view_count: 0,
         created_at: '',
         relevance_score: 0
       });
@@ -230,9 +231,9 @@ export const VirtualizedFeed = () => {
                     ) : (
                       <RealtimeFeedCard
                         post={item}
-                        onLike={likePost}
-                        onShare={sharePost}
-                        onView={trackView}
+            onLike={() => likePost(post.post_id)}
+            onShare={() => sharePost(post.post_id)}
+            onView={() => trackView(post.post_id)}
                         isLast={virtualItem.index === items.length - 1}
                       />
                     )}
