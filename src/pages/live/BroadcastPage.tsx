@@ -1,9 +1,7 @@
-import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { LiveStreamInterface } from '@/components/live/LiveStreamInterface';
 
-const LiveStream = () => {
-  const { streamId } = useParams();
+const BroadcastPage = () => {
   const navigate = useNavigate();
 
   const handleEndStream = () => {
@@ -12,11 +10,10 @@ const LiveStream = () => {
 
   return (
     <LiveStreamInterface 
-      mode="viewer" 
-      streamId={streamId}
+      mode="broadcaster" 
       onEndStream={handleEndStream}
     />
   );
 };
 
-export default LiveStream;
+export default BroadcastPage;

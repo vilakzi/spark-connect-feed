@@ -21,6 +21,7 @@ const CreatorMarketplace = lazy(() => import("./pages/creator/CreatorMarketplace
 const CreatorProfile = lazy(() => import("./pages/creator/CreatorProfile"));
 const LiveCamLounge = lazy(() => import("./pages/live/LiveCamLounge"));
 const LiveStream = lazy(() => import("./pages/live/LiveStream"));
+const BroadcastPage = lazy(() => import("./pages/live/BroadcastPage"));
 const UserProfile = lazy(() => import("./pages/profile/UserProfile"));
 
 // Lazy load admin pages
@@ -115,6 +116,14 @@ const App = () => (
                     <ProtectedRoute>
                       <ErrorBoundary>
                         <LiveStream />
+                      </ErrorBoundary>
+                    </ProtectedRoute>
+                  } />
+                  
+                  <Route path="/live/broadcast" element={
+                    <ProtectedRoute>
+                      <ErrorBoundary>
+                        <BroadcastPage />
                       </ErrorBoundary>
                     </ProtectedRoute>
                   } />
