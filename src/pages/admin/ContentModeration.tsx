@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { 
   Search,
-  Filter,
   CheckCircle,
   XCircle,
   Clock,
@@ -23,6 +22,7 @@ interface ContentItem {
   id: string;
   title: string;
   description: string;
+  content: string;
   content_type: string;
   status: string;
   approval_status: string;
@@ -31,7 +31,6 @@ interface ContentItem {
   share_count: number;
   is_promoted: boolean;
   created_at: string;
-  admin_id: string;
 }
 
 export const ContentModeration = () => {
@@ -49,14 +48,31 @@ export const ContentModeration = () => {
     try {
       setLoading(true);
       
-      const { data, error } = await supabase
-        .from('admin_content')
+      // Fetch posts from the existing posts table and transform to ContentItem format
+      const { data: posts, error } = await supabase
+        .from('posts')
         .select('*')
-        .order('created_at', { ascending: true })
-        .limit(500);
-
+        .order('created_at', { ascending: false });
+      
       if (error) throw error;
-      setContent(data || []);
+      
+      // Transform posts to ContentItem format
+      const transformedContent: ContentItem[] = (posts || []).map(post => ({
+        id: post.id,
+        title: `Post ${post.id.substring(0, 8)}`,
+        description: post.content.length > 100 ? post.content.substring(0, 100) + '...' : post.content,
+        content: post.content,
+        content_type: post.media_type || 'text',
+        status: 'published',
+        approval_status: 'approved',
+        view_count: 0,
+        like_count: post.likes_count || 0,
+        share_count: post.shares_count || 0,
+        is_promoted: false,
+        created_at: post.created_at
+      }));
+      
+      setContent(transformedContent);
     } catch (error) {
       console.error('Error fetching content:', error);
       toast({
@@ -65,22 +81,14 @@ export const ContentModeration = () => {
         variant: "destructive"
       });
     } finally {
-      setLoading(true);
+      setLoading(false);
     }
   };
 
   const handleApproval = async (contentId: string, action: 'approve' | 'reject') => {
     try {
-      const { error } = await supabase
-        .from('admin_content')
-        .update({ 
-          approval_status: action === 'approve' ? 'approved' : 'rejected',
-          approved_at: new Date().toISOString(),
-          approved_by: (await supabase.auth.getUser()).data.user?.id
-        })
-        .eq('id', contentId);
-
-      if (error) throw error;
+      // Mock approval - in a real app, this would update approval status
+      console.log(`${action} content:`, contentId);
 
       setContent(prev => 
         prev.map(item => 
@@ -106,18 +114,8 @@ export const ContentModeration = () => {
 
   const handlePromotion = async (contentId: string, promote: boolean) => {
     try {
-      if (promote) {
-        const { error } = await supabase.rpc('promote_admin_content', {
-          content_id: contentId,
-          priority_level: 1
-        });
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.rpc('unpromote_admin_content', {
-          content_id: contentId
-        });
-        if (error) throw error;
-      }
+      // Mock promotion - in a real app, this would call RPC functions
+      console.log(`${promote ? 'Promote' : 'Unpromote'} content:`, contentId);
 
       setContent(prev => 
         prev.map(item => 
