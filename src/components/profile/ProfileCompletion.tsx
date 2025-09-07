@@ -36,9 +36,8 @@ interface Profile {
   bio?: string;
   location?: string;
   profile_image_url?: string;
-  profile_images?: string[];
   interests?: string[];
-  photo_verified?: boolean;
+  privacy_settings?: any;
 }
 
 export const ProfileCompletion = ({ onEditProfile, onNotificationSettings }: ProfileCompletionProps) => {
@@ -101,10 +100,10 @@ export const ProfileCompletion = ({ onEditProfile, onNotificationSettings }: Pro
     },
     {
       id: 'photo',
-      label: 'Upload profile photos',
-      completed: !!(profile?.profile_images?.length > 0),
+      label: 'Upload profile photo',
+      completed: !!(profile?.profile_image_url),
       icon: Camera,
-      description: 'Add at least one photo to get more matches'
+      description: 'Add a profile photo to get more matches'
     },
     {
       id: 'bio',

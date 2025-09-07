@@ -22,9 +22,8 @@ interface ProfileFormData {
   bio: string;
   age: number;
   location: string;
-  gender: string;
   interests: string[];
-  profile_images: string[];
+  profile_image_url: string;
   privacy_settings: {
     showContact: boolean;
     showLastSeen: boolean;
@@ -60,9 +59,8 @@ export const ProfileEdit = ({ onBack }: ProfileEditProps) => {
     bio: '',
     age: 18,
     location: '',
-    gender: '',
     interests: [],
-    profile_images: [],
+    profile_image_url: '',
     privacy_settings: defaultPrivacySettings
   });
 
@@ -90,9 +88,8 @@ export const ProfileEdit = ({ onBack }: ProfileEditProps) => {
             bio: data.bio || '',
             age: data.age || 18,
             location: data.location || '',
-            gender: data.gender || '',
             interests: data.interests || [],
-            profile_images: data.profile_images || [],
+            profile_image_url: data.profile_image_url || '',
             privacy_settings: typeof data.privacy_settings === 'object' && data.privacy_settings
               ? { ...defaultPrivacySettings, ...data.privacy_settings }
               : defaultPrivacySettings
@@ -125,21 +122,20 @@ export const ProfileEdit = ({ onBack }: ProfileEditProps) => {
     setSaving(true);
     try {
       const profileData = {
+        user_id: user.id,
         display_name: formData.display_name,
         bio: formData.bio,
         age: formData.age,
         location: formData.location,
-        gender: formData.gender,
         interests: formData.interests,
-        profile_images: formData.profile_images,
-        profile_image_url: formData.profile_images[0] || null,
+        profile_image_url: formData.profile_image_url,
         privacy_settings: formData.privacy_settings,
         updated_at: new Date().toISOString()
       };
 
       const { error } = await supabase
         .from('profiles')
-        .upsert({ id: user.id, ...profileData });
+        .upsert(profileData);
 
       if (error) {
         throw error;
@@ -169,7 +165,7 @@ export const ProfileEdit = ({ onBack }: ProfileEditProps) => {
     if (formData.bio.trim()) completed++;
     if (formData.age > 0) completed++;
     if (formData.location.trim()) completed++;
-    if (formData.profile_images.length > 0) completed++;
+    if (formData.profile_image_url.trim()) completed++;
     if (formData.interests.length > 0) completed++;
 
     return Math.round((completed / total) * 100);
@@ -300,18 +296,13 @@ export const ProfileEdit = ({ onBack }: ProfileEditProps) => {
                       </div>
                     </div>
                     <div>
-                      <Label htmlFor="gender">Gender</Label>
-                      <Select value={formData.gender} onValueChange={(value) => updateFormData({ gender: value })}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select gender" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="male">Male</SelectItem>
-                          <SelectItem value="female">Female</SelectItem>
-                          <SelectItem value="non-binary">Non-binary</SelectItem>
-                          <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <Label htmlFor="profile_image_url">Profile Image URL</Label>
+                      <Input
+                        id="profile_image_url"
+                        value={formData.profile_image_url}
+                        onChange={(e) => updateFormData({ profile_image_url: e.target.value })}
+                        placeholder="https://example.com/image.jpg"
+                      />
                     </div>
                   </div>
                 </CardContent>
@@ -321,14 +312,30 @@ export const ProfileEdit = ({ onBack }: ProfileEditProps) => {
             {activeSection === 'photos' && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Profile Photos</CardTitle>
+                  <CardTitle>Profile Photo</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ImageUpload
-                    currentImages={formData.profile_images}
-                    onImagesChange={(images) => updateFormData({ profile_images: images })}
-                    maxImages={6}
-                  />
+                  <div className="space-y-4">
+                    <Label htmlFor="profile_image_url">Profile Image URL</Label>
+                    <Input
+                      id="profile_image_url"
+                      value={formData.profile_image_url}
+                      onChange={(e) => updateFormData({ profile_image_url: e.target.value })}
+                      placeholder="https://example.com/image.jpg"
+                    />
+                    {formData.profile_image_url && (
+                      <div className="mt-4">
+                        <img 
+                          src={formData.profile_image_url} 
+                          alt="Profile preview" 
+                          className="w-32 h-32 object-cover rounded-lg"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             )}

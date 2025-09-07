@@ -16,9 +16,8 @@ interface Message {
 
 interface Conversation {
   id: string;
-  participant_one_id: string;
-  participant_two_id: string;
-  last_message_id?: string;
+  participant_1: string;
+  participant_2: string;
   last_message_at?: string;
   created_at: string;
   updated_at: string;
@@ -58,8 +57,8 @@ export const useChat = () => {
       // Simplified query without foreign key relationship that might not exist
       const { data, error } = await supabase
         .from('conversations')
-        .select('id, participant_one_id, participant_two_id, last_message_id, last_message_at, created_at, updated_at')
-        .or(`participant_one_id.eq.${user.id},participant_two_id.eq.${user.id}`)
+        .select('id, participant_1, participant_2, last_message_at, created_at, updated_at')
+        .or(`participant_1.eq.${user.id},participant_2.eq.${user.id}`)
         .order('updated_at', { ascending: false });
 
       if (error || !data) {
@@ -71,16 +70,15 @@ export const useChat = () => {
       const enrichedConversations = await Promise.all(
         data.map(async (conv: {
           id: string;
-          participant_one_id: string;
-          participant_two_id: string;
-          last_message_id?: string;
+          participant_1: string;
+          participant_2: string;
           last_message_at?: string;
           created_at: string;
           updated_at: string;
         }) => {
-          const otherUserId = conv.participant_one_id === user.id 
-            ? conv.participant_two_id 
-            : conv.participant_one_id;
+          const otherUserId = conv.participant_1 === user.id 
+            ? conv.participant_2 
+            : conv.participant_1;
 
           // Get other user profile
           const { data: profileData } = await supabase
@@ -108,9 +106,8 @@ export const useChat = () => {
 
           return {
             id: conv.id,
-            participant_one_id: conv.participant_one_id,
-            participant_two_id: conv.participant_two_id,
-            last_message_id: conv.last_message_id,
+            participant_1: conv.participant_1,
+            participant_2: conv.participant_2,
             last_message_at: conv.last_message_at,
             created_at: conv.created_at,
             updated_at: conv.updated_at,
@@ -202,17 +199,36 @@ export const useChat = () => {
     }
   }, [user, updateTypingStatus]);
 
-  // Create conversation from match
-  const createConversation = useCallback(async (matchId: string) => {
+  // Create conversation from match - simplified without RPC
+  const createConversation = useCallback(async (otherUserId: string) => {
+    if (!user) return null;
+    
     try {
-      const { data, error } = await supabase.rpc('create_conversation_from_match', {
-        match_id_param: matchId
-      });
+      // Check if conversation already exists
+      const { data: existingConv } = await supabase
+        .from('conversations')
+        .select('id')
+        .or(`and(participant_1.eq.${user.id},participant_2.eq.${otherUserId}),and(participant_1.eq.${otherUserId},participant_2.eq.${user.id})`)
+        .single();
+
+      if (existingConv) {
+        return existingConv.id;
+      }
+
+      // Create new conversation
+      const { data, error } = await supabase
+        .from('conversations')
+        .insert({
+          participant_1: user.id,
+          participant_2: otherUserId
+        })
+        .select('id')
+        .single();
 
       if (error) throw error;
       
       await fetchConversations();
-      return data;
+      return data?.id;
     } catch (error) {
       console.error('Error creating conversation:', error);
       toast({
@@ -222,7 +238,7 @@ export const useChat = () => {
       });
       return null;
     }
-  }, [fetchConversations]);
+  }, [user, fetchConversations]);
 
   // Mark messages as read
   const markMessagesAsRead = useCallback(async (conversationId: string) => {
@@ -256,22 +272,22 @@ export const useChat = () => {
     // Subscribe to conversation changes
     const conversationChannel = supabase
       .channel('conversations-changes')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'conversations',
-        filter: `participant_one_id=eq.${user.id}`
-      }, () => {
-        fetchConversations();
-      })
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'conversations',
-        filter: `participant_two_id=eq.${user.id}`
-      }, () => {
-        fetchConversations();
-      })
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'conversations',  
+          filter: `participant_1=eq.${user.id}`
+        }, () => {
+          fetchConversations();
+        })
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'conversations',
+          filter: `participant_2=eq.${user.id}`
+        }, () => {
+          fetchConversations();
+        })
       .subscribe();
 
     // Subscribe to new messages in current conversation

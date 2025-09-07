@@ -8,6 +8,7 @@ import { MessageInput } from './MessageInput';
 import { TypingIndicator } from './TypingIndicator';
 import { useChat } from '@/hooks/useChat';
 import { usePresence } from '@/hooks/usePresence';
+import { useAuth } from '@/hooks/useAuth';
 
 interface ChatInterfaceProps {
   conversationId: string;
@@ -26,6 +27,7 @@ export const ChatInterface = ({ conversationId, onBack }: ChatInterfaceProps) =>
     markMessagesAsRead 
   } = useChat();
   
+  const { user } = useAuth();
   const { isUserOnline } = usePresence();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [isTyping, setIsTyping] = useState(false);
@@ -137,7 +139,7 @@ export const ChatInterface = ({ conversationId, onBack }: ChatInterfaceProps) =>
               <MessageBubble 
                 key={message.id} 
                 message={message}
-                isOwnMessage={message.sender_id === conversation.participant_one_id || message.sender_id === conversation.participant_two_id}
+                isOwnMessage={message.sender_id === user?.id}
               />
             ))
           )}

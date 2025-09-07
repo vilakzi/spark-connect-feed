@@ -43,7 +43,21 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         if (session?.user && event === 'SIGNED_IN') {
           setTimeout(async () => {
             try {
-              await supabase.rpc('ensure_user_profile', { profile_user_id: session.user.id });
+              // Create profile if it doesn't exist
+              const { data: existingProfile } = await supabase
+                .from('profiles')
+                .select('id')
+                .eq('user_id', session.user.id)
+                .single();
+              
+              if (!existingProfile) {
+                await supabase
+                  .from('profiles')
+                  .insert({
+                    user_id: session.user.id,
+                    display_name: session.user.email?.split('@')[0] || 'User'
+                  });
+              }
             } catch (error) {
               console.warn('Failed to ensure user profile:', error);
             }
@@ -62,7 +76,21 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       // Ensure profile exists for existing session
       if (session?.user) {
         try {
-          await supabase.rpc('ensure_user_profile', { profile_user_id: session.user.id });
+          // Create profile if it doesn't exist
+          const { data: existingProfile } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('user_id', session.user.id)
+            .single();
+          
+          if (!existingProfile) {
+            await supabase
+              .from('profiles')
+              .insert({
+                user_id: session.user.id,
+                display_name: session.user.email?.split('@')[0] || 'User'
+              });
+          }
         } catch (error) {
           console.warn('Failed to ensure user profile:', error);
         }
