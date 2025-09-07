@@ -3,14 +3,17 @@ import { useAuth } from './useAuth';
 
 interface SwipeProfile {
   id: string;
+  profile_id: string;
   display_name: string;
   age: number;
   bio: string;
   profile_image_url?: string;
+  profile_images: string[];
   images: string[];
   interests: string[];
   location: string;
   distance?: number;
+  photo_verified?: boolean;
 }
 
 export const useSwipeEngine = () => {
@@ -43,10 +46,24 @@ export const useSwipeEngine = () => {
 
   return {
     potentialMatches,
+    currentProfile: potentialMatches[0] || null,
     loading,
+    dailySwipes: 0,
+    dailySwipeLimit: 100,
+    canSwipe: true,
+    hasMoreProfiles: potentialMatches.length > 1,
     fetchPotentialMatches,
+    fetchProfiles: fetchPotentialMatches,
     swipeRight,
     swipeLeft,
-    superLike
+    superLike,
+    handleSwipe: async (direction: 'left' | 'right', profileId: string) => {
+      if (direction === 'right') {
+        return await swipeRight(profileId);
+      } else {
+        await swipeLeft(profileId);
+        return false;
+      }
+    }
   };
 };

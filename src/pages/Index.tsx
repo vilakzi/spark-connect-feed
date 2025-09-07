@@ -34,9 +34,10 @@ const Index = () => {
   // Initialize real-time features
   useEffect(() => {
     if (user) {
-      updatePresence();
+      // Track page view activity
+      console.log('User viewed page');
     }
-  }, [user, updatePresence]);
+  }, [user]);
 
   const handleStartChat = async (matchId: string) => {
     const conversationId = await createConversation(matchId);

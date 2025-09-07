@@ -16,6 +16,7 @@ export const SwipeInterface = () => {
     hasMoreProfiles,
     fetchProfiles,
     handleSwipe,
+    superLike,
   } = useSwipeEngine();
 
   useEffect(() => {
@@ -25,15 +26,21 @@ export const SwipeInterface = () => {
   }, [user, fetchProfiles]);
 
   const handleLike = () => {
-    handleSwipe('like');
+    if (currentProfile) {
+      handleSwipe('right', currentProfile.id);
+    }
   };
 
   const handlePass = () => {
-    handleSwipe('pass');
+    if (currentProfile) {
+      handleSwipe('left', currentProfile.id);
+    }
   };
 
   const handleSuperLike = () => {
-    handleSwipe('super_like');
+    if (currentProfile) {
+      superLike(currentProfile.id);
+    }
   };
 
   if (loading) {

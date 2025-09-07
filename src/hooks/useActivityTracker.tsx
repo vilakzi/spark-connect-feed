@@ -5,6 +5,7 @@ export const useActivityTracker = () => {
   const { user } = useAuth();
   const [activityData, setActivityData] = useState({
     dailyActiveTime: 0,
+    dailyStats: { sessions: 0, timeSpent: 0, interactions: 0 },
     weeklyStats: [],
     monthlyStats: []
   });
@@ -21,6 +22,7 @@ export const useActivityTracker = () => {
 
   return {
     activityData,
+    dailyStats: activityData.dailyStats,
     trackActivity,
     getActivityStats
   };
