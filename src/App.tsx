@@ -15,6 +15,14 @@ const Index = lazy(() => import("./pages/Index"));
 const Auth = lazy(() => import("./pages/Auth"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
+// Lazy load category-specific pages
+const HookupFeed = lazy(() => import("./pages/hookup/HookupFeed"));
+const CreatorMarketplace = lazy(() => import("./pages/creator/CreatorMarketplace"));
+const CreatorProfile = lazy(() => import("./pages/creator/CreatorProfile"));
+const LiveCamLounge = lazy(() => import("./pages/live/LiveCamLounge"));
+const LiveStream = lazy(() => import("./pages/live/LiveStream"));
+const UserProfile = lazy(() => import("./pages/profile/UserProfile"));
+
 // Lazy load admin pages
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard").then(module => ({ default: module.AdminDashboard })));
 const UserManagement = lazy(() => import("./pages/admin/UserManagement").then(module => ({ default: module.UserManagement })));
@@ -70,6 +78,54 @@ const App = () => (
                     </ProtectedRoute>
                   } />
                   
+                  {/* Category-specific Routes */}
+                  <Route path="/hookup" element={
+                    <ProtectedRoute>
+                      <ErrorBoundary>
+                        <HookupFeed />
+                      </ErrorBoundary>
+                    </ProtectedRoute>
+                  } />
+                  
+                  <Route path="/creators" element={
+                    <ProtectedRoute>
+                      <ErrorBoundary>
+                        <CreatorMarketplace />
+                      </ErrorBoundary>
+                    </ProtectedRoute>
+                  } />
+                  
+                  <Route path="/creator/:username" element={
+                    <ProtectedRoute>
+                      <ErrorBoundary>
+                        <CreatorProfile />
+                      </ErrorBoundary>
+                    </ProtectedRoute>
+                  } />
+                  
+                  <Route path="/live" element={
+                    <ProtectedRoute>
+                      <ErrorBoundary>
+                        <LiveCamLounge />
+                      </ErrorBoundary>
+                    </ProtectedRoute>
+                  } />
+                  
+                  <Route path="/live/:streamId" element={
+                    <ProtectedRoute>
+                      <ErrorBoundary>
+                        <LiveStream />
+                      </ErrorBoundary>
+                    </ProtectedRoute>
+                  } />
+                  
+                  {/* Profile Routes */}
+                  <Route path="/:username" element={
+                    <ErrorBoundary>
+                      <UserProfile />
+                    </ErrorBoundary>
+                  } />
+                  
                   {/* Admin Routes */}
                   <Route path="/admin" element={
                     <AdminRoute>
@@ -85,7 +141,7 @@ const App = () => (
                     <Route path="settings" element={<AdminSettings />} />
                   </Route>
                   
-                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  {/* 404 Route */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </Suspense>

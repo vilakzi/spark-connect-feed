@@ -62,6 +62,54 @@ export type Database = {
         }
         Relationships: []
       }
+      creator_content: {
+        Row: {
+          content_type: string
+          created_at: string
+          creator_id: string
+          description: string | null
+          id: string
+          is_premium: boolean
+          like_count: number | null
+          media_url: string | null
+          price_cents: number
+          thumbnail_url: string | null
+          title: string
+          updated_at: string
+          view_count: number | null
+        }
+        Insert: {
+          content_type: string
+          created_at?: string
+          creator_id: string
+          description?: string | null
+          id?: string
+          is_premium?: boolean
+          like_count?: number | null
+          media_url?: string | null
+          price_cents?: number
+          thumbnail_url?: string | null
+          title: string
+          updated_at?: string
+          view_count?: number | null
+        }
+        Update: {
+          content_type?: string
+          created_at?: string
+          creator_id?: string
+          description?: string | null
+          id?: string
+          is_premium?: boolean
+          like_count?: number | null
+          media_url?: string | null
+          price_cents?: number
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string
+          view_count?: number | null
+        }
+        Relationships: []
+      }
       likes: {
         Row: {
           created_at: string
@@ -90,6 +138,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      live_streams: {
+        Row: {
+          created_at: string
+          creator_id: string
+          description: string | null
+          ended_at: string | null
+          id: string
+          is_live: boolean
+          started_at: string | null
+          stream_url: string | null
+          thumbnail_url: string | null
+          title: string
+          updated_at: string
+          viewer_count: number | null
+        }
+        Insert: {
+          created_at?: string
+          creator_id: string
+          description?: string | null
+          ended_at?: string | null
+          id?: string
+          is_live?: boolean
+          started_at?: string | null
+          stream_url?: string | null
+          thumbnail_url?: string | null
+          title: string
+          updated_at?: string
+          viewer_count?: number | null
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string
+          description?: string | null
+          ended_at?: string | null
+          id?: string
+          is_live?: boolean
+          started_at?: string | null
+          stream_url?: string | null
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string
+          viewer_count?: number | null
+        }
+        Relationships: []
       }
       messages: {
         Row: {
@@ -185,8 +278,12 @@ export type Database = {
           location: string | null
           privacy_settings: Json | null
           profile_image_url: string | null
+          referral_code: string | null
+          referred_by: string | null
           updated_at: string
+          user_category: Database["public"]["Enums"]["user_category"] | null
           user_id: string
+          username: string | null
         }
         Insert: {
           age?: number | null
@@ -198,8 +295,12 @@ export type Database = {
           location?: string | null
           privacy_settings?: Json | null
           profile_image_url?: string | null
+          referral_code?: string | null
+          referred_by?: string | null
           updated_at?: string
+          user_category?: Database["public"]["Enums"]["user_category"] | null
           user_id: string
+          username?: string | null
         }
         Update: {
           age?: number | null
@@ -211,8 +312,69 @@ export type Database = {
           location?: string | null
           privacy_settings?: Json | null
           profile_image_url?: string | null
+          referral_code?: string | null
+          referred_by?: string | null
           updated_at?: string
+          user_category?: Database["public"]["Enums"]["user_category"] | null
           user_id?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
+      referrals: {
+        Row: {
+          created_at: string
+          id: string
+          referral_code: string
+          referred_id: string
+          referrer_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          referral_code: string
+          referred_id: string
+          referrer_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          referral_code?: string
+          referred_id?: string
+          referrer_id?: string
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          created_at: string
+          creator_id: string
+          expires_at: string | null
+          id: string
+          price_cents: number
+          status: string
+          subscriber_id: string
+          subscription_tier: string
+        }
+        Insert: {
+          created_at?: string
+          creator_id: string
+          expires_at?: string | null
+          id?: string
+          price_cents: number
+          status?: string
+          subscriber_id: string
+          subscription_tier?: string
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string
+          expires_at?: string | null
+          id?: string
+          price_cents?: number
+          status?: string
+          subscriber_id?: string
+          subscription_tier?: string
         }
         Relationships: []
       }
@@ -346,6 +508,14 @@ export type Database = {
         Args: { profile_user_id: string; viewer_id: string }
         Returns: boolean
       }
+      generate_referral_code: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      generate_username: {
+        Args: { display_name: string; user_id: string }
+        Returns: string
+      }
       get_feed_posts: {
         Args: { limit_count?: number; offset_count?: number; viewer_id: string }
         Returns: {
@@ -398,6 +568,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
+      user_category: "hookup" | "creator" | "viewer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -526,6 +697,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user"],
+      user_category: ["hookup", "creator", "viewer"],
     },
   },
 } as const

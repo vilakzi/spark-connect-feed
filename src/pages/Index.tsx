@@ -1,231 +1,216 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { usePresence } from '@/hooks/usePresence';
-import { useActivityTracker } from '@/hooks/useActivityTracker';
-import { useChat } from '@/hooks/useChat';
-import { useProfileViews } from '@/hooks/useProfileViews';
-import { Button } from '@/components/ui/button';
+import { MainLayout } from '@/components/layout/MainLayout';
 import { EnhancedFeed } from '@/components/feed/EnhancedFeed';
-import { SwipeInterface } from '@/components/swipe/SwipeInterface';
-import { MatchesList } from '@/components/matches/MatchesList';
-import { NotificationCenter } from '@/components/notifications/NotificationCenter';
-import { ProfileEdit } from '@/components/profile/ProfileEdit';
-import { ProfileCompletion } from '@/components/profile/ProfileCompletion';
-import { ConversationList } from '@/components/chat/ConversationList';
-import { ChatInterface } from '@/components/chat/ChatInterface';
-import { StoriesInterface } from '@/components/stories/StoriesInterface';
-import { ProfileViewsTracker } from '@/components/social/ProfileViewsTracker';
-import { NotificationSettings } from '@/components/notifications/NotificationSettings';
-import { LogOut, Heart, Users, Layers, Star, User, MessageCircle, Settings, Search, Camera, TrendingUp, Eye } from 'lucide-react';
-import { useAdminCheck } from '@/hooks/useAdminCheck';
-
-type ViewMode = 'feed' | 'discover' | 'stories' | 'insights' | 'matches' | 'profile' | 'editProfile' | 'notifications' | 'chat' | 'chatInterface';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Heart, Users, TrendingUp, MessageCircle, Video, Eye, Star } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
 const Index = () => {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const { updatePresence } = usePresence();
-  const { dailyStats } = useActivityTracker();
-  const { isAdmin } = useAdminCheck();
-  const { trackProfileView } = useProfileViews();
-  const [currentView, setCurrentView] = useState<ViewMode>('feed');
-  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
-  const { createConversation } = useChat();
+  const [userProfile, setUserProfile] = useState(null);
+  const [liveStreams, setLiveStreams] = useState([]);
+  const [featuredCreators, setFeaturedCreators] = useState([]);
 
-  // Initialize real-time features
   useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!user) return;
+      
+      const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+      
+      setUserProfile(data);
+    };
+
+    const fetchLiveStreams = async () => {
+      const { data } = await supabase
+        .from('live_streams')
+        .select(`
+          *,
+          profiles!creator_id(display_name, username, profile_image_url)
+        `)
+        .eq('is_live', true)
+        .limit(3);
+      
+      setLiveStreams(data || []);
+    };
+
+    const fetchFeaturedCreators = async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_category', 'creator')
+        .limit(4);
+      
+      setFeaturedCreators(data || []);
+    };
+
     if (user) {
-      // Track page view activity
-      console.log('User viewed page');
+      fetchUserProfile();
+      fetchLiveStreams();
+      fetchFeaturedCreators();
+      updatePresence('online');
     }
-  }, [user]);
-
-  const handleStartChat = async (matchId: string) => {
-    const conversationId = await createConversation(matchId);
-    if (conversationId) {
-      setSelectedConversationId(conversationId);
-      setCurrentView('chatInterface');
-    }
-  };
-
-  const handleConversationSelect = (conversationId: string) => {
-    setSelectedConversationId(conversationId);
-    setCurrentView('chatInterface');
-  };
-
-  const handleBackToChat = () => {
-    setSelectedConversationId(null);
-    setCurrentView('chat');
-  };
-
-  const renderContent = () => {
-    switch (currentView) {
-      case 'feed':
-        return <EnhancedFeed />;
-      case 'discover':
-        return <SwipeInterface />;
-      case 'stories':
-        return <StoriesInterface />;
-      case 'insights':
-        return <ProfileViewsTracker />;
-      case 'matches':
-        return <MatchesList onStartChat={handleStartChat} />;
-      case 'chat':
-        return <ConversationList onConversationSelect={handleConversationSelect} />;
-      case 'chatInterface':
-        return selectedConversationId ? (
-          <ChatInterface 
-            conversationId={selectedConversationId} 
-            onBack={handleBackToChat}
-          />
-        ) : null;
-      case 'profile':
-        return (
-          <ProfileCompletion 
-            onEditProfile={() => setCurrentView('editProfile')}
-            onNotificationSettings={() => setCurrentView('notifications')}
-          />
-        );
-      case 'editProfile':
-        return <ProfileEdit onBack={() => setCurrentView('profile')} />;
-      case 'notifications':
-        return <NotificationSettings onBack={() => setCurrentView('profile')} />;
-      default:
-        return <EnhancedFeed />;
-    }
-  };
-
-  // Don't render navigation for edit profile, notifications, and chat interface views
-  if (currentView === 'editProfile' || currentView === 'chatInterface' || currentView === 'notifications') {
-    return renderContent();
-  }
+  }, [user, updatePresence]);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-sm border-b border-border">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Heart className="w-6 h-6 text-primary" />
-            <h1 className="text-xl font-bold text-primary">ConnectsBuddy</h1>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            <NotificationCenter />
-            {isAdmin && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => window.open('/admin', '_blank')}
-                className="hidden sm:flex"
-              >
-                <Settings className="w-4 h-4 mr-2" />
-                Admin
-              </Button>
-            )}
-            <span className="text-sm text-muted-foreground hidden sm:block">
-              {user?.user_metadata?.display_name || user?.email}
-            </span>
-            <Button onClick={signOut} variant="ghost" size="sm">
-              <LogOut className="w-4 h-4" />
-            </Button>
-          </div>
+    <MainLayout>
+      <div className="container max-w-6xl mx-auto px-4 space-y-6">
+        {/* Welcome Header */}
+        <div className="text-center space-y-2 py-6">
+          <h1 className="text-4xl font-bold gradient-text">Welcome to ConnectsBuddy</h1>
+          <p className="text-muted-foreground">Your premium social connection platform</p>
+          {userProfile?.user_category && (
+            <Badge className="mt-2">
+              {userProfile.user_category === 'hookup' && '💕 Ready to Connect'}
+              {userProfile.user_category === 'creator' && '🎨 Content Creator'}
+              {userProfile.user_category === 'viewer' && '👀 Exploring Content'}
+            </Badge>
+          )}
         </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="flex-1 relative">
-        {currentView === 'profile' ? (
-          <div className="container mx-auto px-4 py-6 max-w-md">
-            {renderContent()}
-          </div>
-        ) : currentView === 'discover' ? (
-          <div className="h-full flex items-center justify-center p-4">
-            <div className="w-full max-w-sm h-full">
-              {renderContent()}
+        {/* Quick Action Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Link to="/hookup">
+            <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer group">
+              <CardHeader className="text-center">
+                <div className="w-12 h-12 mx-auto bg-gradient-to-br from-pink-500 to-rose-600 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                  <Heart className="h-6 w-6 text-white" />
+                </div>
+                <CardTitle className="text-lg">Find Connections</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground text-center">
+                  Discover amazing people nearby who share your interests
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link to="/creators">
+            <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer group">
+              <CardHeader className="text-center">
+                <div className="w-12 h-12 mx-auto bg-gradient-to-br from-purple-500 to-indigo-600 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                  <Star className="h-6 w-6 text-white" />
+                </div>
+                <CardTitle className="text-lg">Premium Content</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground text-center">
+                  Explore exclusive content from verified creators
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link to="/live">
+            <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer group">
+              <CardHeader className="text-center">
+                <div className="w-12 h-12 mx-auto bg-gradient-to-br from-red-500 to-orange-600 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                  <Video className="h-6 w-6 text-white" />
+                </div>
+                <CardTitle className="text-lg">Live Streams</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground text-center">
+                  Join live interactions with creators in real-time
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
+        </div>
+
+        {/* Live Streams Section */}
+        {liveStreams.length > 0 && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold">🔴 Live Now</h2>
+              <Link to="/live">
+                <Button variant="outline">View All</Button>
+              </Link>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {liveStreams.slice(0, 3).map((stream) => (
+                <Link key={stream.id} to={`/live/${stream.id}`}>
+                  <Card className="overflow-hidden hover:shadow-lg transition-shadow group">
+                    <div className="relative aspect-video">
+                      <img 
+                        src={stream.thumbnail_url || '/placeholder.svg'} 
+                        alt={stream.title}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute top-2 left-2">
+                        <Badge className="bg-red-500">
+                          <div className="w-2 h-2 bg-white rounded-full animate-pulse mr-1"></div>
+                          LIVE
+                        </Badge>
+                      </div>
+                      <div className="absolute top-2 right-2">
+                        <Badge className="bg-black/50">
+                          <Eye className="h-3 w-3 mr-1" />
+                          {stream.viewer_count}
+                        </Badge>
+                      </div>
+                    </div>
+                    <CardContent className="p-3">
+                      <h3 className="font-medium text-sm line-clamp-1">{stream.title}</h3>
+                      <p className="text-xs text-muted-foreground">
+                        {stream.profiles?.display_name}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
             </div>
           </div>
-        ) : (
-          renderContent()
         )}
-      </main>
 
-      {/* Bottom Navigation */}
-      <nav className="sticky bottom-0 bg-background border-t border-border">
-        <div className="container mx-auto px-4">
-          <div className="flex justify-around py-2">
-            <Button
-              variant={currentView === 'feed' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setCurrentView('feed')}
-              className="flex flex-col items-center gap-1 h-auto py-2 px-3"
-            >
-              <Layers className="w-5 h-5" />
-              <span className="text-xs">Feed</span>
-            </Button>
+        {/* Featured Creators */}
+        {featuredCreators.length > 0 && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold">⭐ Featured Creators</h2>
+              <Link to="/creators">
+                <Button variant="outline">View All</Button>
+              </Link>
+            </div>
             
-            <Button
-              variant={currentView === 'discover' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setCurrentView('discover')}
-              className="flex flex-col items-center gap-1 h-auto py-2 px-3"
-            >
-              <Search className="w-5 h-5" />
-              <span className="text-xs">Discover</span>
-            </Button>
-
-            <Button
-              variant={currentView === 'stories' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setCurrentView('stories')}
-              className="flex flex-col items-center gap-1 h-auto py-2 px-3"
-            >
-              <Camera className="w-5 h-5" />
-              <span className="text-xs">Stories</span>
-            </Button>
-            
-            <Button
-              variant={currentView === 'matches' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setCurrentView('matches')}
-              className="flex flex-col items-center gap-1 h-auto py-2 px-3"
-            >
-              <Users className="w-5 h-5" />
-              <span className="text-xs">Matches</span>
-            </Button>
-            
-            <Button
-              variant={currentView === 'chat' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setCurrentView('chat')}
-              className="flex flex-col items-center gap-1 h-auto py-2 px-3"
-            >
-              <MessageCircle className="w-5 h-5" />
-              <span className="text-xs">Chat</span>
-            </Button>
-
-            <Button
-              variant={currentView === 'insights' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setCurrentView('insights')}
-              className="flex flex-col items-center gap-1 h-auto py-2 px-3"
-            >
-              <TrendingUp className="w-5 h-5" />
-              <span className="text-xs">Insights</span>
-            </Button>
-            
-            <Button
-              variant={currentView === 'profile' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setCurrentView('profile')}
-              className="flex flex-col items-center gap-1 h-auto py-2 px-3"
-            >
-              <User className="w-5 h-5" />
-              <span className="text-xs">Profile</span>
-            </Button>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {featuredCreators.slice(0, 4).map((creator) => (
+                <Link key={creator.id} to={`/${creator.username}`}>
+                  <Card className="text-center hover:shadow-lg transition-shadow">
+                    <CardContent className="p-4">
+                      <Avatar className="h-16 w-16 mx-auto mb-3">
+                        <AvatarImage src={creator.profile_image_url} />
+                        <AvatarFallback>{creator.display_name?.[0]}</AvatarFallback>
+                      </Avatar>
+                      <h3 className="font-medium text-sm line-clamp-1">{creator.display_name}</h3>
+                      <p className="text-xs text-muted-foreground">@{creator.username}</p>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
           </div>
+        )}
+
+        {/* Main Feed */}
+        <div className="space-y-4">
+          <h2 className="text-2xl font-bold">Latest Posts</h2>
+          <EnhancedFeed />
         </div>
-      </nav>
-    </div>
+      </div>
+    </MainLayout>
   );
 };
 

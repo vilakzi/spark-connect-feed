@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,15 +7,19 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 
 const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
+  const [userCategory, setUserCategory] = useState<'hookup' | 'creator' | 'viewer'>('viewer');
   const [loading, setLoading] = useState(false);
   const { signIn, signUp, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const referralCode = searchParams.get('ref');
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,7 +38,7 @@ const Auth = () => {
     e.preventDefault();
     setLoading(true);
     
-    const { error } = await signUp(email, password, displayName);
+    const { error } = await signUp(email, password, displayName, userCategory, referralCode);
     
     if (!error) {
       navigate('/');
@@ -169,6 +173,26 @@ const Auth = () => {
                     minLength={6}
                   />
                 </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="user-category">I'm here to</Label>
+                  <Select value={userCategory} onValueChange={(value: 'hookup' | 'creator' | 'viewer') => setUserCategory(value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select your category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="hookup">Meet People & Hook Up</SelectItem>
+                      <SelectItem value="creator">Create & Sell Content</SelectItem>
+                      <SelectItem value="viewer">Watch & Enjoy Content</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {referralCode && (
+                  <div className="text-sm text-muted-foreground text-center p-2 bg-muted/50 rounded">
+                    🎉 You're joining with a referral code: <span className="font-semibold">{referralCode}</span>
+                  </div>
+                )}
                 
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? 'Creating Account...' : 'Create Account'}
