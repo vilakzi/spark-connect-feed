@@ -48,8 +48,8 @@ export const ContentCard = ({ content, onLike, onShare }: ContentCardProps) => {
         setLikeCount(prev => prev - 1);
         setIsLiked(false);
       } else {
-        // Like logic
-        await supabase.rpc('increment_content_view', { content_id: content.id });
+        // Like logic - temporarily disabled due to missing DB function
+        // await supabase.rpc('increment_content_view', { content_id: content.id });
         setLikeCount(prev => prev + 1);
         setIsLiked(true);
         toast({
@@ -59,7 +59,9 @@ export const ContentCard = ({ content, onLike, onShare }: ContentCardProps) => {
       }
       onLike?.(content.id);
     } catch (error) {
-      console.error('Error liking content:', error);
+      import('@/lib/logger').then(({ logApiError }) => {
+        logApiError('like-content', error);
+      });
       toast({
         title: "Error",
         description: "Could not process like. Please try again.",

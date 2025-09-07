@@ -2,6 +2,8 @@ import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { errorReporter } from '@/lib/errorTracking';
+import { logger } from '@/lib/logger';
 
 interface Props {
   children: ReactNode;
@@ -24,12 +26,19 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
+    logger.error('ErrorBoundary caught an error', {
+      message: error.message,
+      stack: error.stack,
+      componentStack: errorInfo.componentStack,
+    }, 'ErrorBoundary');
     
-    // Log to error reporting service in production
-    if (process.env.NODE_ENV === 'production') {
-      // Add error reporting service here
-    }
+    errorReporter.reportError(error, {
+      componentStack: errorInfo.componentStack,
+      errorBoundary: 'ErrorBoundary',
+      url: window.location.href,
+      userAgent: navigator.userAgent,
+      timestamp: new Date(),
+    });
   }
 
   handleReset = () => {

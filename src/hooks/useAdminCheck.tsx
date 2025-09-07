@@ -26,13 +26,17 @@ export const useAdminCheck = (): AdminCheck => {
         const { data, error } = await supabase.rpc('is_admin');
         
         if (error) {
-          console.error('Error checking admin status:', error);
+          import('@/lib/logger').then(({ logApiError }) => {
+            logApiError('admin-check', error);
+          });
           setIsAdmin(false);
         } else {
           setIsAdmin(data || false);
         }
       } catch (error) {
-        console.error('Error checking admin status:', error);
+        import('@/lib/logger').then(({ logApiError }) => {
+          logApiError('admin-check', error);
+        });
         setIsAdmin(false);
       } finally {
         setLoading(false);
