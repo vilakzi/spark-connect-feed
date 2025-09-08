@@ -1,125 +1,158 @@
-import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
+import { toast } from 'sonner';
 
 interface Community {
   id: string;
   name: string;
-  description: string;
+  description: string | null;
+  image_url: string | null;
+  banner_url: string | null;
+  creator_id: string;
+  privacy_level: string;
   category: string;
-  image_url?: string;
   member_count: number;
-  is_private: boolean;
-  created_by: string;
+  rules: string | null;
+  tags: string[];
+  is_verified: boolean;
+  location: string | null;
   created_at: string;
   updated_at: string;
-  user_role?: string;
-  joined_at?: string;
 }
 
-// Mock hook - communities table doesn't exist in database
 export const useCommunities = () => {
   const { user } = useAuth();
-  const [communities, setCommunities] = useState<Community[]>([]);
-  const [userCommunities, setUserCommunities] = useState<Community[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    // Mock data since communities table doesn't exist
-    const mockCommunities: Community[] = [
-      {
-        id: '1',
-        name: 'Tech Enthusiasts',
-        description: 'A community for technology lovers',
-        category: 'Technology',
-        image_url: '/placeholder.svg',
-        member_count: 150,
-        is_private: false,
-        created_by: 'mock-user',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      },
-      {
-        id: '2',
-        name: 'Fitness & Health',
-        description: 'Stay fit and healthy together',
-        category: 'Health',
-        image_url: '/placeholder.svg',
-        member_count: 89,
-        is_private: false,
-        created_by: 'mock-user',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }
-    ];
+  // Fetch all public communities
+  const {
+    data: communities = [],
+    isLoading: loading,
+    error
+  } = useQuery({
+    queryKey: ['communities'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('communities')
+        .select('*')
+        .order('member_count', { ascending: false });
 
-    setCommunities(mockCommunities);
-    setUserCommunities(user ? mockCommunities.slice(0, 1) : []);
-  }, [user]);
+      if (error) throw error;
+      return data as Community[];
+    },
+    enabled: !!user
+  });
 
-  const joinCommunity = async (communityId: string) => {
-    setLoading(true);
-    try {
-      // Mock join action
-      const community = communities.find(c => c.id === communityId);
-      if (community && !userCommunities.find(c => c.id === communityId)) {
-        setUserCommunities(prev => [...prev, community]);
-      }
-    } catch (err) {
-      setError('Failed to join community');
-    } finally {
-      setLoading(false);
+  // Fetch user's communities
+  const {
+    data: userCommunities = []
+  } = useQuery({
+    queryKey: ['user-communities', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+
+      const { data, error } = await supabase
+        .from('community_memberships')
+        .select(`
+          *,
+          communities:community_id (*)
+        `)
+        .eq('user_id', user.id)
+        .eq('status', 'active');
+
+      if (error) throw error;
+      return data.map(membership => membership.communities) as Community[];
+    },
+    enabled: !!user
+  });
+
+  // Create community mutation
+  const createCommunityMutation = useMutation({
+    mutationFn: async (communityData: Partial<Community> & { name: string }) => {
+      if (!user) throw new Error('User not authenticated');
+
+      const { data, error } = await supabase
+        .from('communities')
+        .insert({
+          ...communityData,
+          creator_id: user.id
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['communities'] });
+      queryClient.invalidateQueries({ queryKey: ['user-communities'] });
+      toast.success('Community created successfully!');
+    },
+    onError: (error) => {
+      toast.error('Failed to create community');
+      console.error('Error creating community:', error);
     }
-  };
+  });
 
-  const leaveCommunity = async (communityId: string) => {
-    setLoading(true);
-    try {
-      // Mock leave action
-      setUserCommunities(prev => prev.filter(c => c.id !== communityId));
-    } catch (err) {
-      setError('Failed to leave community');
-    } finally {
-      setLoading(false);
+  // Join community mutation
+  const joinCommunityMutation = useMutation({
+    mutationFn: async (communityId: string) => {
+      if (!user) throw new Error('User not authenticated');
+
+      const { data, error } = await supabase
+        .from('community_memberships')
+        .insert({
+          community_id: communityId,
+          user_id: user.id,
+          role: 'member'
+        });
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['communities'] });
+      queryClient.invalidateQueries({ queryKey: ['user-communities'] });
+      toast.success('Joined community successfully!');
+    },
+    onError: (error) => {
+      toast.error('Failed to join community');
+      console.error('Error joining community:', error);
     }
-  };
+  });
 
-  const createCommunity = async (communityData: Partial<Community>) => {
-    setLoading(true);
-    try {
-      // Mock create action
-      const newCommunity: Community = {
-        id: Date.now().toString(),
-        name: communityData.name || '',
-        description: communityData.description || '',
-        category: communityData.category || '',
-        image_url: communityData.image_url,
-        member_count: 1,
-        is_private: communityData.is_private || false,
-        created_by: user?.id || '',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        user_role: 'admin'
-      };
+  // Leave community mutation
+  const leaveCommunityMutation = useMutation({
+    mutationFn: async (communityId: string) => {
+      if (!user) throw new Error('User not authenticated');
 
-      setCommunities(prev => [...prev, newCommunity]);
-      setUserCommunities(prev => [...prev, newCommunity]);
-      return newCommunity;
-    } catch (err) {
-      setError('Failed to create community');
-      throw err;
-    } finally {
-      setLoading(false);
+      const { error } = await supabase
+        .from('community_memberships')
+        .delete()
+        .eq('community_id', communityId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['communities'] });
+      queryClient.invalidateQueries({ queryKey: ['user-communities'] });
+      toast.success('Left community successfully!');
+    },
+    onError: (error) => {
+      toast.error('Failed to leave community');
+      console.error('Error leaving community:', error);
     }
-  };
+  });
 
   return {
     communities,
     userCommunities,
     loading,
-    error,
-    joinCommunity,
-    leaveCommunity,
-    createCommunity
+    error: error?.message || '',
+    createCommunity: createCommunityMutation.mutate,
+    joinCommunity: joinCommunityMutation.mutateAsync,
+    leaveCommunity: leaveCommunityMutation.mutateAsync
   };
 };

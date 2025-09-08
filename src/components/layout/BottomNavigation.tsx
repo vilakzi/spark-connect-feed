@@ -16,16 +16,16 @@ export const BottomNavigation = () => {
       category: 'all'
     },
     { 
-      icon: Heart, 
-      label: 'Hookup', 
-      path: '/hookup',
-      category: 'hookup'
+      icon: Users, 
+      label: 'Communities', 
+      path: '/communities',
+      category: 'social'
     },
     { 
-      icon: Users, 
-      label: 'Creators', 
-      path: '/creators',
-      category: 'creator'
+      icon: Heart, 
+      label: 'Events', 
+      path: '/events',
+      category: 'social'
     },
     { 
       icon: Video, 
@@ -38,12 +38,6 @@ export const BottomNavigation = () => {
       label: 'Profile', 
       path: `/${user?.user_metadata?.username || user?.id}`,
       category: 'profile'
-    },
-    { 
-      icon: BarChart3, 
-      label: 'Studio', 
-      path: '/creator/studio',
-      category: 'creator'
     }
   ];
 

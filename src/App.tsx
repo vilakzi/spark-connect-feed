@@ -20,6 +20,8 @@ const HookupFeed = lazy(() => import("./pages/hookup/HookupFeed"));
 const CreatorMarketplace = lazy(() => import("./pages/creator/CreatorMarketplace"));
 const CreatorProfile = lazy(() => import("./pages/creator/CreatorProfile"));
 const CreatorStudio = lazy(() => import("./pages/creator/CreatorStudio"));
+const Communities = lazy(() => import("./pages/social/Communities"));
+const Events = lazy(() => import("./pages/social/Events"));
 const LiveCamLounge = lazy(() => import("./pages/live/LiveCamLounge"));
 const LiveStream = lazy(() => import("./pages/live/LiveStream"));
 const BroadcastPage = lazy(() => import("./pages/live/BroadcastPage"));
@@ -109,6 +111,22 @@ const App = () => (
                     <ProtectedRoute>
                       <ErrorBoundary>
                         <CreatorStudio />
+                      </ErrorBoundary>
+                    </ProtectedRoute>
+                  } />
+                  
+                  <Route path="/communities" element={
+                    <ProtectedRoute>
+                      <ErrorBoundary>
+                        <Communities />
+                      </ErrorBoundary>
+                    </ProtectedRoute>
+                  } />
+                  
+                  <Route path="/events" element={
+                    <ProtectedRoute>
+                      <ErrorBoundary>
+                        <Events />
                       </ErrorBoundary>
                     </ProtectedRoute>
                   } />

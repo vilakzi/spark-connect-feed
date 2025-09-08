@@ -95,6 +95,201 @@ export type Database = {
         }
         Relationships: []
       }
+      communities: {
+        Row: {
+          banner_url: string | null
+          category: string
+          created_at: string
+          creator_id: string
+          description: string | null
+          id: string
+          image_url: string | null
+          is_verified: boolean | null
+          location: string | null
+          member_count: number | null
+          name: string
+          privacy_level: string
+          rules: string | null
+          tags: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          banner_url?: string | null
+          category?: string
+          created_at?: string
+          creator_id: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_verified?: boolean | null
+          location?: string | null
+          member_count?: number | null
+          name: string
+          privacy_level?: string
+          rules?: string | null
+          tags?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          banner_url?: string | null
+          category?: string
+          created_at?: string
+          creator_id?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_verified?: boolean | null
+          location?: string | null
+          member_count?: number | null
+          name?: string
+          privacy_level?: string
+          rules?: string | null
+          tags?: string[] | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      community_discussions: {
+        Row: {
+          author_id: string
+          community_id: string
+          content: string
+          created_at: string
+          discussion_type: string
+          id: string
+          is_locked: boolean | null
+          is_pinned: boolean | null
+          last_reply_at: string | null
+          reply_count: number | null
+          tags: string[] | null
+          title: string
+          updated_at: string
+          view_count: number | null
+        }
+        Insert: {
+          author_id: string
+          community_id: string
+          content: string
+          created_at?: string
+          discussion_type?: string
+          id?: string
+          is_locked?: boolean | null
+          is_pinned?: boolean | null
+          last_reply_at?: string | null
+          reply_count?: number | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+          view_count?: number | null
+        }
+        Update: {
+          author_id?: string
+          community_id?: string
+          content?: string
+          created_at?: string
+          discussion_type?: string
+          id?: string
+          is_locked?: boolean | null
+          is_pinned?: boolean | null
+          last_reply_at?: string | null
+          reply_count?: number | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+          view_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_discussions_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_invites: {
+        Row: {
+          community_id: string
+          created_at: string
+          email: string | null
+          expires_at: string
+          id: string
+          invite_code: string | null
+          invitee_id: string | null
+          inviter_id: string
+          status: string
+          used_at: string | null
+        }
+        Insert: {
+          community_id: string
+          created_at?: string
+          email?: string | null
+          expires_at?: string
+          id?: string
+          invite_code?: string | null
+          invitee_id?: string | null
+          inviter_id: string
+          status?: string
+          used_at?: string | null
+        }
+        Update: {
+          community_id?: string
+          created_at?: string
+          email?: string | null
+          expires_at?: string
+          id?: string
+          invite_code?: string | null
+          invitee_id?: string | null
+          inviter_id?: string
+          status?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_invites_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_memberships: {
+        Row: {
+          community_id: string
+          id: string
+          joined_at: string
+          role: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          community_id: string
+          id?: string
+          joined_at?: string
+          role?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          community_id?: string
+          id?: string
+          joined_at?: string
+          role?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_memberships_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       content_performance: {
         Row: {
           age_groups: Json | null
@@ -394,6 +589,216 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      discussion_replies: {
+        Row: {
+          author_id: string
+          content: string
+          created_at: string
+          discussion_id: string
+          edited_at: string | null
+          id: string
+          is_edited: boolean | null
+          parent_reply_id: string | null
+        }
+        Insert: {
+          author_id: string
+          content: string
+          created_at?: string
+          discussion_id: string
+          edited_at?: string | null
+          id?: string
+          is_edited?: boolean | null
+          parent_reply_id?: string | null
+        }
+        Update: {
+          author_id?: string
+          content?: string
+          created_at?: string
+          discussion_id?: string
+          edited_at?: string | null
+          id?: string
+          is_edited?: boolean | null
+          parent_reply_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discussion_replies_discussion_id_fkey"
+            columns: ["discussion_id"]
+            isOneToOne: false
+            referencedRelation: "community_discussions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discussion_replies_parent_reply_id_fkey"
+            columns: ["parent_reply_id"]
+            isOneToOne: false
+            referencedRelation: "discussion_replies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_attendees: {
+        Row: {
+          check_in_time: string | null
+          event_id: string
+          id: string
+          notes: string | null
+          rsvp_date: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          check_in_time?: string | null
+          event_id: string
+          id?: string
+          notes?: string | null
+          rsvp_date?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          check_in_time?: string | null
+          event_id?: string
+          id?: string
+          notes?: string | null
+          rsvp_date?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_attendees_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_invites: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          invitee_id: string
+          inviter_id: string
+          message: string | null
+          responded_at: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          invitee_id: string
+          inviter_id: string
+          message?: string | null
+          responded_at?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          invitee_id?: string
+          inviter_id?: string
+          message?: string | null
+          responded_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_invites_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          attendee_count: number | null
+          community_id: string | null
+          created_at: string
+          description: string | null
+          end_time: string
+          event_type: string
+          id: string
+          image_url: string | null
+          is_online: boolean | null
+          location: string | null
+          max_attendees: number | null
+          meeting_url: string | null
+          organizer_id: string
+          price_cents: number | null
+          privacy_level: string
+          requirements: string | null
+          start_time: string
+          status: string
+          tags: string[] | null
+          title: string
+          updated_at: string
+          venue_name: string | null
+        }
+        Insert: {
+          attendee_count?: number | null
+          community_id?: string | null
+          created_at?: string
+          description?: string | null
+          end_time: string
+          event_type?: string
+          id?: string
+          image_url?: string | null
+          is_online?: boolean | null
+          location?: string | null
+          max_attendees?: number | null
+          meeting_url?: string | null
+          organizer_id: string
+          price_cents?: number | null
+          privacy_level?: string
+          requirements?: string | null
+          start_time: string
+          status?: string
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+          venue_name?: string | null
+        }
+        Update: {
+          attendee_count?: number | null
+          community_id?: string | null
+          created_at?: string
+          description?: string | null
+          end_time?: string
+          event_type?: string
+          id?: string
+          image_url?: string | null
+          is_online?: boolean | null
+          location?: string | null
+          max_attendees?: number | null
+          meeting_url?: string | null
+          organizer_id?: string
+          price_cents?: number | null
+          privacy_level?: string
+          requirements?: string | null
+          start_time?: string
+          status?: string
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+          venue_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       feed_preferences: {
         Row: {
