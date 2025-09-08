@@ -1,4 +1,4 @@
-import { Home, Users, Video, Heart, User } from 'lucide-react';
+import { Home, Users, Video, Heart, User, BarChart3 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
