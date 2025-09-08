@@ -110,6 +110,48 @@ export type Database = {
         }
         Relationships: []
       }
+      feed_preferences: {
+        Row: {
+          auto_refresh_interval: number | null
+          created_at: string
+          diversity_weight: number | null
+          engagement_weight: number | null
+          freshness_weight: number | null
+          id: string
+          personalization_weight: number | null
+          preferred_content_types: string[] | null
+          show_injected_content: boolean | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auto_refresh_interval?: number | null
+          created_at?: string
+          diversity_weight?: number | null
+          engagement_weight?: number | null
+          freshness_weight?: number | null
+          id?: string
+          personalization_weight?: number | null
+          preferred_content_types?: string[] | null
+          show_injected_content?: boolean | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auto_refresh_interval?: number | null
+          created_at?: string
+          diversity_weight?: number | null
+          engagement_weight?: number | null
+          freshness_weight?: number | null
+          id?: string
+          personalization_weight?: number | null
+          preferred_content_types?: string[] | null
+          show_injected_content?: boolean | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       likes: {
         Row: {
           created_at: string
@@ -409,6 +451,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_interactions: {
+        Row: {
+          created_at: string
+          duration_ms: number | null
+          id: string
+          interaction_type: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          duration_ms?: number | null
+          id?: string
+          interaction_type: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          duration_ms?: number | null
+          id?: string
+          interaction_type?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_relationships: {
         Row: {

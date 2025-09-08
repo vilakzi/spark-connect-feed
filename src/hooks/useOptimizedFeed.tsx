@@ -4,6 +4,7 @@ import { useAdvancedFeedAlgorithm } from './useAdvancedFeedAlgorithm';
 import { supabase } from '@/integrations/supabase/client';
 
 interface FeedPost {
+  id: string;
   post_id: string;
   content: string;
   media_urls: string[];
@@ -20,13 +21,6 @@ interface FeedPost {
   user_id: string;
   _injected?: boolean;
   _score?: number;
-}
-
-interface UserInteraction {
-  post_id: string;
-  interaction_type: 'view' | 'like' | 'share' | 'comment' | 'skip';
-  duration_ms?: number;
-  created_at: string;
 }
 
 export const useOptimizedFeed = () => {
@@ -60,7 +54,7 @@ export const useOptimizedFeed = () => {
 
       if (mainError) throw mainError;
 
-      // Get background/discovery content for injection
+      // Get background/discovery content for injection - fix the join
       const { data: backgroundPosts, error: bgError } = await supabase
         .from('posts')
         .select(`
@@ -73,8 +67,7 @@ export const useOptimizedFeed = () => {
           comments_count,
           shares_count,
           created_at,
-          user_id,
-          profiles!posts_user_id_fkey(display_name, profile_image_url)
+          user_id
         `)
         .neq('user_id', user.id)
         .order('created_at', { ascending: false })
@@ -83,8 +76,21 @@ export const useOptimizedFeed = () => {
 
       if (bgError) throw bgError;
 
+      // Get profile data separately for background posts
+      const userIds = backgroundPosts?.map(p => p.user_id) || [];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('user_id, display_name, profile_image_url')
+        .in('user_id', userIds);
+
+      const profileMap = profiles?.reduce((acc, profile) => {
+        acc[profile.user_id] = profile;
+        return acc;
+      }, {} as Record<string, any>) || {};
+
       // Transform data to FeedPost format
       const transformedMain = mainPosts?.map(post => ({
+        id: post.id,
         post_id: post.id,
         content: post.content,
         media_urls: post.image_url ? [post.image_url] : post.video_url ? [post.video_url] : [],
@@ -101,22 +107,26 @@ export const useOptimizedFeed = () => {
         user_id: post.user_id
       })) || [];
 
-      const transformedBackground = backgroundPosts?.map(post => ({
-        post_id: post.id,
-        content: post.content,
-        media_urls: post.image_url ? [post.image_url] : post.video_url ? [post.video_url] : [],
-        media_types: post.media_type ? [post.media_type] : ['text'],
-        thumbnails: [],
-        user_display_name: post.profiles?.display_name || 'Unknown',
-        user_avatar: post.profiles?.profile_image_url || '',
-        like_count: post.likes_count || 0,
-        comment_count: post.comments_count || 0,
-        share_count: post.shares_count || 0,
-        view_count: 0,
-        created_at: post.created_at,
-        relevance_score: 0,
-        user_id: post.user_id
-      })) || [];
+      const transformedBackground = backgroundPosts?.map(post => {
+        const profile = profileMap[post.user_id];
+        return {
+          id: post.id,
+          post_id: post.id,
+          content: post.content,
+          media_urls: post.image_url ? [post.image_url] : post.video_url ? [post.video_url] : [],
+          media_types: post.media_type ? [post.media_type] : ['text'],
+          thumbnails: [],
+          user_display_name: profile?.display_name || 'Unknown',
+          user_avatar: profile?.profile_image_url || '',
+          like_count: post.likes_count || 0,
+          comment_count: post.comments_count || 0,
+          share_count: post.shares_count || 0,
+          view_count: 0,
+          created_at: post.created_at,
+          relevance_score: 0,
+          user_id: post.user_id
+        };
+      }) || [];
 
       // Apply advanced algorithm
       const optimizedFeed = algorithm.injectContent(transformedMain, transformedBackground);
@@ -170,22 +180,24 @@ export const useOptimizedFeed = () => {
   ) => {
     if (!user) return;
 
-    // Track with algorithm
-    algorithm.trackUserInteraction(interactionType === 'view' ? 'view' : interactionType, postId);
+    // Track with algorithm (map skip to view for algorithm)
+    const algorithmType = interactionType === 'skip' ? 'view' : interactionType;
+    algorithm.trackUserInteraction(algorithmType, postId);
 
     // Store interaction in database for ML training
     try {
-      await supabase
+      const { error } = await supabase
         .from('user_interactions')
         .insert({
           user_id: user.id,
           post_id: postId,
           interaction_type: interactionType,
-          duration_ms: duration,
-          created_at: new Date().toISOString()
+          duration_ms: duration
         });
+        
+      if (error) console.error('Interaction tracking error:', error);
     } catch (error) {
-      console.log('Interaction tracking disabled - table may not exist yet');
+      console.log('Interaction tracking failed:', error);
     }
   }, [user, algorithm]);
 
@@ -224,11 +236,8 @@ export const useOptimizedFeed = () => {
         post_id: postId
       });
 
-      // Update post like count
-      await supabase
-        .from('posts')
-        .update({ likes_count: supabase.sql`likes_count + 1` })
-        .eq('id', postId);
+      // Update post like count using RPC for atomic increment
+      await supabase.rpc('increment_likes', { post_id: postId });
 
       await trackInteraction(postId, 'like');
     } catch (error) {
@@ -252,11 +261,7 @@ export const useOptimizedFeed = () => {
           : post
       ));
 
-      await supabase
-        .from('posts')
-        .update({ shares_count: supabase.sql`shares_count + 1` })
-        .eq('id', postId);
-
+      await supabase.rpc('increment_shares', { post_id: postId });
       await trackInteraction(postId, 'share');
     } catch (error) {
       console.error('Error sharing post:', error);
