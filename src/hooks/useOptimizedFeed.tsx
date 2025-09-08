@@ -236,8 +236,19 @@ export const useOptimizedFeed = () => {
         post_id: postId
       });
 
-      // Update post like count using RPC for atomic increment
-      await supabase.rpc('increment_likes', { post_id: postId });
+      // Update post like count with optimistic increment
+      const { data: currentPost } = await supabase
+        .from('posts')
+        .select('likes_count')
+        .eq('id', postId)
+        .single();
+        
+      if (currentPost) {
+        await supabase
+          .from('posts')
+          .update({ likes_count: currentPost.likes_count + 1 })
+          .eq('id', postId);
+      }
 
       await trackInteraction(postId, 'like');
     } catch (error) {
@@ -261,7 +272,18 @@ export const useOptimizedFeed = () => {
           : post
       ));
 
-      await supabase.rpc('increment_shares', { post_id: postId });
+      const { data: currentPost } = await supabase
+        .from('posts')
+        .select('shares_count')
+        .eq('id', postId)
+        .single();
+        
+      if (currentPost) {
+        await supabase
+          .from('posts')
+          .update({ shares_count: currentPost.shares_count + 1 })
+          .eq('id', postId);
+      }
       await trackInteraction(postId, 'share');
     } catch (error) {
       console.error('Error sharing post:', error);
