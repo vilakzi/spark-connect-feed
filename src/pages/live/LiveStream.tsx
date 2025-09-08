@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { LiveStreamInterface } from '@/components/live/LiveStreamInterface';
+import { EnhancedStreamInterface } from '@/components/live/EnhancedStreamInterface';
 
 const LiveStream = () => {
   const { streamId } = useParams();
@@ -11,7 +11,7 @@ const LiveStream = () => {
   };
 
   return (
-    <LiveStreamInterface 
+    <EnhancedStreamInterface 
       mode="viewer" 
       streamId={streamId}
       onEndStream={handleEndStream}

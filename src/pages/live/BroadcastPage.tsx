@@ -1,16 +1,25 @@
-import { useNavigate } from 'react-router-dom';
-import { LiveStreamInterface } from '@/components/live/LiveStreamInterface';
+import React from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { EnhancedStreamInterface } from '@/components/live/EnhancedStreamInterface';
 
 const BroadcastPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const streamId = searchParams.get('streamId');
 
   const handleEndStream = () => {
     navigate('/live');
   };
 
+  if (!streamId) {
+    navigate('/live');
+    return null;
+  }
+
   return (
-    <LiveStreamInterface 
-      mode="broadcaster" 
+    <EnhancedStreamInterface 
+      mode="broadcaster"
+      streamId={streamId}
       onEndStream={handleEndStream}
     />
   );

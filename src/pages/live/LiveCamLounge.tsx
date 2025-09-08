@@ -1,14 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { MainLayout } from '@/components/layout/MainLayout';
-import { LiveStreamInterface } from '@/components/live/LiveStreamInterface';
+import { StreamCreationDialog } from '@/components/live/StreamCreationDialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { 
   Video, 
   Users, 
@@ -19,7 +18,8 @@ import {
   Eye,
   Clock,
   Star,
-  Plus
+  Plus,
+  DollarSign
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -52,66 +52,57 @@ const LiveCamLounge = () => {
   };
 
   const fetchLiveStreams = async () => {
-    // Mock live streams - in real implementation, fetch from database
-    const mockStreams = [
-      {
-        id: '1',
-        streamId: 'stream-1',
-        creator: {
-          id: '1',
-          username: 'prettykat',
-          displayName: 'Kat ❤️',
-          avatar: '/placeholder.svg',
-          isVerified: true
-        },
-        title: 'Chill Evening Chat 💕',
-        viewers: 1234,
-        thumbnail: '/placeholder.svg',
-        category: 'Just Chatting',
-        isPrivate: false,
-        duration: '1:23:45',
-        tags: ['chill', 'chat', 'music']
-      },
-      {
-        id: '2',
-        streamId: 'stream-2',
-        creator: {
-          id: '2',
-          username: 'misssunshine',
-          displayName: 'Sunshine ☀️',
-          avatar: '/placeholder.svg',
-          isVerified: true
-        },
-        title: 'Morning Yoga Session ✨',
-        viewers: 892,
-        thumbnail: '/placeholder.svg',
-        category: 'Fitness',
-        isPrivate: true,
-        duration: '0:45:12',
-        tags: ['yoga', 'fitness', 'morning']
-      },
-      {
-        id: '3',
-        streamId: 'stream-3',
-        creator: {
-          id: '3',
-          username: 'gamegirlx',
-          displayName: 'GameGirl X',
-          avatar: '/placeholder.svg',
-          isVerified: false
-        },
-        title: 'Late Night Gaming 🎮',
-        viewers: 567,
-        thumbnail: '/placeholder.svg',
-        category: 'Gaming',
-        isPrivate: false,
-        duration: '2:15:30',
-        tags: ['gaming', 'fps', 'competitive']
-      }
-    ];
+    try {
+      const { data, error } = await supabase
+        .rpc('get_stream_with_analytics', { stream_uuid: null })
+        .or('is_live.eq.true')
+        .order('viewer_count', { ascending: false });
 
-    setLiveStreams(mockStreams);
-    setFeaturedStreams(mockStreams.slice(0, 2));
+      if (error) {
+        console.error('Error fetching streams:', error);
+        return;
+      }
+
+      // Transform data for component compatibility
+      const transformedStreams = (data || []).map(stream => ({
+        id: stream.id,
+        streamId: stream.id,
+        creator: {
+          id: stream.creator_id,
+          username: stream.creator_name?.toLowerCase().replace(/\s+/g, '') || 'creator',
+          displayName: stream.creator_name || 'Unknown Creator',
+          avatar: stream.creator_avatar || '/placeholder.svg',
+          isVerified: true // You can add verification logic later
+        },
+        title: stream.title,
+        viewers: stream.viewer_count || 0,
+        thumbnail: '/placeholder.svg', // You can add thumbnail URLs later
+        category: stream.category,
+        isPrivate: stream.is_private,
+        pricePerMinute: stream.price_per_minute,
+        duration: calculateStreamDuration(stream.created_at),
+        tags: stream.tags || [],
+        totalTips: stream.total_tips,
+        totalMessages: stream.total_messages
+      }));
+
+      setLiveStreams(transformedStreams);
+      setFeaturedStreams(transformedStreams.slice(0, 2));
+    } catch (error) {
+      console.error('Error fetching live streams:', error);
+    }
+  };
+
+  const calculateStreamDuration = (startedAt: string) => {
+    const start = new Date(startedAt);
+    const now = new Date();
+    const diff = Math.floor((now.getTime() - start.getTime()) / 1000);
+    
+    const hours = Math.floor(diff / 3600);
+    const minutes = Math.floor((diff % 3600) / 60);
+    const seconds = diff % 60;
+    
+    return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
   const filteredStreams = liveStreams.filter(stream => {
@@ -129,9 +120,8 @@ const LiveCamLounge = () => {
     setShowBroadcastDialog(true);
   };
 
-  const startNewStream = () => {
-    setShowBroadcastDialog(false);
-    navigate('/live/broadcast');
+  const handleStreamCreated = (streamId: string) => {
+    navigate(`/live/broadcast?streamId=${streamId}`);
   };
 
   return (
@@ -144,41 +134,12 @@ const LiveCamLounge = () => {
             <p className="text-muted-foreground">Connect with creators in real-time</p>
           </div>
           
-          <Dialog open={showBroadcastDialog} onOpenChange={setShowBroadcastDialog}>
-            <DialogTrigger asChild>
-              <Button onClick={handleStartBroadcast} className="bg-red-500 hover:bg-red-600">
-                <Video className="h-4 w-4 mr-2" />
-                Go Live
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Start Your Live Stream</DialogTitle>
-                <DialogDescription>
-                  Ready to go live? Make sure you have good lighting and a stable internet connection.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="text-sm text-muted-foreground">
-                  <p>Before going live:</p>
-                  <ul className="list-disc list-inside space-y-1 mt-2">
-                    <li>Check your camera and microphone</li>
-                    <li>Ensure good lighting</li>
-                    <li>Have a stable internet connection</li>
-                    <li>Set your stream title and category</li>
-                  </ul>
-                </div>
-                <div className="flex space-x-2">
-                  <Button onClick={startNewStream} className="flex-1">
-                    Start Broadcasting
-                  </Button>
-                  <Button variant="outline" onClick={() => setShowBroadcastDialog(false)}>
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <StreamCreationDialog onStreamCreated={handleStreamCreated}>
+            <Button className="bg-red-500 hover:bg-red-600">
+              <Video className="h-4 w-4 mr-2" />
+              Go Live
+            </Button>
+          </StreamCreationDialog>
         </div>
 
         {/* Search and Filters */}
@@ -237,9 +198,12 @@ const LiveCamLounge = () => {
                           <Users className="h-3 w-3 mr-1" />
                           {stream.viewers.toLocaleString()}
                         </Badge>
-                        {stream.isPrivate && (
-                          <Badge className="bg-yellow-500 text-black">VIP</Badge>
-                        )}
+                      {stream.isPrivate && (
+                        <Badge className="bg-yellow-500 text-black">
+                          <DollarSign className="h-2 w-2 mr-1" />
+                          ${(stream.pricePerMinute || 0).toFixed(2)}/min
+                        </Badge>
+                      )}
                       </div>
                       
                       <div className="absolute bottom-3 left-3 right-3">
@@ -309,7 +273,9 @@ const LiveCamLounge = () => {
                         {stream.viewers > 1000 ? `${(stream.viewers / 1000).toFixed(1)}k` : stream.viewers}
                       </Badge>
                       {stream.isPrivate && (
-                        <Badge className="bg-yellow-500 text-black text-xs">VIP</Badge>
+                        <Badge className="bg-yellow-500 text-black text-xs">
+                          ${(stream.pricePerMinute || 0).toFixed(2)}/min
+                        </Badge>
                       )}
                     </div>
                     
