@@ -14,6 +14,66 @@ export type Database = {
   }
   public: {
     Tables: {
+      audience_insights: {
+        Row: {
+          age_18_24: number | null
+          age_25_34: number | null
+          age_35_44: number | null
+          age_45_54: number | null
+          age_55_plus: number | null
+          avg_session_duration: number | null
+          content_preferences: Json | null
+          created_at: string
+          creator_id: string
+          date: string
+          device_types: Json | null
+          id: string
+          most_active_day: string | null
+          peak_activity_hours: Json | null
+          return_visitor_rate: number | null
+          top_cities: Json | null
+          top_countries: Json | null
+        }
+        Insert: {
+          age_18_24?: number | null
+          age_25_34?: number | null
+          age_35_44?: number | null
+          age_45_54?: number | null
+          age_55_plus?: number | null
+          avg_session_duration?: number | null
+          content_preferences?: Json | null
+          created_at?: string
+          creator_id: string
+          date?: string
+          device_types?: Json | null
+          id?: string
+          most_active_day?: string | null
+          peak_activity_hours?: Json | null
+          return_visitor_rate?: number | null
+          top_cities?: Json | null
+          top_countries?: Json | null
+        }
+        Update: {
+          age_18_24?: number | null
+          age_25_34?: number | null
+          age_35_44?: number | null
+          age_45_54?: number | null
+          age_55_plus?: number | null
+          avg_session_duration?: number | null
+          content_preferences?: Json | null
+          created_at?: string
+          creator_id?: string
+          date?: string
+          device_types?: Json | null
+          id?: string
+          most_active_day?: string | null
+          peak_activity_hours?: Json | null
+          return_visitor_rate?: number | null
+          top_cities?: Json | null
+          top_countries?: Json | null
+        }
+        Relationships: []
+      }
       blocked_users: {
         Row: {
           blocked_id: string
@@ -32,6 +92,78 @@ export type Database = {
           blocker_id?: string
           created_at?: string
           id?: string
+        }
+        Relationships: []
+      }
+      content_performance: {
+        Row: {
+          age_groups: Json | null
+          avg_view_duration: number | null
+          comments: number | null
+          completion_rate: number | null
+          content_id: string
+          content_type: string
+          created_at: string
+          creator_id: string
+          daily_views: Json | null
+          demographics: Json | null
+          hourly_views: Json | null
+          id: string
+          likes: number | null
+          revenue_generated_cents: number | null
+          saves: number | null
+          shares: number | null
+          tips_received_cents: number | null
+          top_countries: string[] | null
+          unique_views: number | null
+          updated_at: string
+          views: number | null
+        }
+        Insert: {
+          age_groups?: Json | null
+          avg_view_duration?: number | null
+          comments?: number | null
+          completion_rate?: number | null
+          content_id: string
+          content_type: string
+          created_at?: string
+          creator_id: string
+          daily_views?: Json | null
+          demographics?: Json | null
+          hourly_views?: Json | null
+          id?: string
+          likes?: number | null
+          revenue_generated_cents?: number | null
+          saves?: number | null
+          shares?: number | null
+          tips_received_cents?: number | null
+          top_countries?: string[] | null
+          unique_views?: number | null
+          updated_at?: string
+          views?: number | null
+        }
+        Update: {
+          age_groups?: Json | null
+          avg_view_duration?: number | null
+          comments?: number | null
+          completion_rate?: number | null
+          content_id?: string
+          content_type?: string
+          created_at?: string
+          creator_id?: string
+          daily_views?: Json | null
+          demographics?: Json | null
+          hourly_views?: Json | null
+          id?: string
+          likes?: number | null
+          revenue_generated_cents?: number | null
+          saves?: number | null
+          shares?: number | null
+          tips_received_cents?: number | null
+          top_countries?: string[] | null
+          unique_views?: number | null
+          updated_at?: string
+          views?: number | null
         }
         Relationships: []
       }
@@ -58,6 +190,120 @@ export type Database = {
           last_message_at?: string | null
           participant_1?: string
           participant_2?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      creator_achievements: {
+        Row: {
+          achievement_data: Json | null
+          achievement_type: string
+          creator_id: string
+          earned_at: string
+          id: string
+          is_featured: boolean | null
+        }
+        Insert: {
+          achievement_data?: Json | null
+          achievement_type: string
+          creator_id: string
+          earned_at?: string
+          id?: string
+          is_featured?: boolean | null
+        }
+        Update: {
+          achievement_data?: Json | null
+          achievement_type?: string
+          creator_id?: string
+          earned_at?: string
+          id?: string
+          is_featured?: boolean | null
+        }
+        Relationships: []
+      }
+      creator_analytics: {
+        Row: {
+          avg_concurrent_viewers: number | null
+          avg_view_duration: number | null
+          content_discoveries: number | null
+          created_at: string
+          creator_id: string
+          date: string
+          engagement_rate: number | null
+          followers_gained: number | null
+          followers_lost: number | null
+          id: string
+          peak_viewers: number | null
+          posts_commented: number | null
+          posts_created: number | null
+          posts_liked: number | null
+          posts_shared: number | null
+          profile_visits: number | null
+          revenue_cents: number | null
+          streams_count: number | null
+          subscriptions_gained: number | null
+          subscriptions_lost: number | null
+          tips_received: number | null
+          total_followers: number | null
+          total_stream_minutes: number | null
+          total_views: number | null
+          unique_viewers: number | null
+          updated_at: string
+        }
+        Insert: {
+          avg_concurrent_viewers?: number | null
+          avg_view_duration?: number | null
+          content_discoveries?: number | null
+          created_at?: string
+          creator_id: string
+          date?: string
+          engagement_rate?: number | null
+          followers_gained?: number | null
+          followers_lost?: number | null
+          id?: string
+          peak_viewers?: number | null
+          posts_commented?: number | null
+          posts_created?: number | null
+          posts_liked?: number | null
+          posts_shared?: number | null
+          profile_visits?: number | null
+          revenue_cents?: number | null
+          streams_count?: number | null
+          subscriptions_gained?: number | null
+          subscriptions_lost?: number | null
+          tips_received?: number | null
+          total_followers?: number | null
+          total_stream_minutes?: number | null
+          total_views?: number | null
+          unique_viewers?: number | null
+          updated_at?: string
+        }
+        Update: {
+          avg_concurrent_viewers?: number | null
+          avg_view_duration?: number | null
+          content_discoveries?: number | null
+          created_at?: string
+          creator_id?: string
+          date?: string
+          engagement_rate?: number | null
+          followers_gained?: number | null
+          followers_lost?: number | null
+          id?: string
+          peak_viewers?: number | null
+          posts_commented?: number | null
+          posts_created?: number | null
+          posts_liked?: number | null
+          posts_shared?: number | null
+          profile_visits?: number | null
+          revenue_cents?: number | null
+          streams_count?: number | null
+          subscriptions_gained?: number | null
+          subscriptions_lost?: number | null
+          tips_received?: number | null
+          total_followers?: number | null
+          total_stream_minutes?: number | null
+          total_views?: number | null
+          unique_viewers?: number | null
           updated_at?: string
         }
         Relationships: []
@@ -107,6 +353,45 @@ export type Database = {
           title?: string
           updated_at?: string
           view_count?: number | null
+        }
+        Relationships: []
+      }
+      creator_goals: {
+        Row: {
+          achieved_at: string | null
+          created_at: string
+          creator_id: string
+          current_value: number | null
+          deadline: string | null
+          goal_type: string
+          id: string
+          is_active: boolean | null
+          target_value: number
+          updated_at: string
+        }
+        Insert: {
+          achieved_at?: string | null
+          created_at?: string
+          creator_id: string
+          current_value?: number | null
+          deadline?: string | null
+          goal_type: string
+          id?: string
+          is_active?: boolean | null
+          target_value: number
+          updated_at?: string
+        }
+        Update: {
+          achieved_at?: string | null
+          created_at?: string
+          creator_id?: string
+          current_value?: number | null
+          deadline?: string | null
+          goal_type?: string
+          id?: string
+          is_active?: boolean | null
+          target_value?: number
+          updated_at?: string
         }
         Relationships: []
       }
@@ -285,6 +570,66 @@ export type Database = {
           },
         ]
       }
+      moderation_reports: {
+        Row: {
+          action_taken: string | null
+          auto_detected: boolean | null
+          content_id: string | null
+          content_type: string
+          created_at: string
+          description: string | null
+          evidence_urls: string[] | null
+          id: string
+          moderator_id: string | null
+          moderator_notes: string | null
+          priority: string | null
+          reason: string
+          reported_user_id: string
+          reporter_id: string | null
+          resolved_at: string | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          action_taken?: string | null
+          auto_detected?: boolean | null
+          content_id?: string | null
+          content_type: string
+          created_at?: string
+          description?: string | null
+          evidence_urls?: string[] | null
+          id?: string
+          moderator_id?: string | null
+          moderator_notes?: string | null
+          priority?: string | null
+          reason: string
+          reported_user_id: string
+          reporter_id?: string | null
+          resolved_at?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          action_taken?: string | null
+          auto_detected?: boolean | null
+          content_id?: string | null
+          content_type?: string
+          created_at?: string
+          description?: string | null
+          evidence_urls?: string[] | null
+          id?: string
+          moderator_id?: string | null
+          moderator_notes?: string | null
+          priority?: string | null
+          reason?: string
+          reported_user_id?: string
+          reporter_id?: string | null
+          resolved_at?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       posts: {
         Row: {
           comments_count: number | null
@@ -405,6 +750,63 @@ export type Database = {
           referral_code?: string
           referred_id?: string
           referrer_id?: string
+        }
+        Relationships: []
+      }
+      revenue_analytics: {
+        Row: {
+          cancellations: number | null
+          content_revenue_cents: number | null
+          created_at: string
+          creator_id: string
+          date: string
+          growth_rate: number | null
+          id: string
+          new_subscriptions: number | null
+          projected_monthly_revenue_cents: number | null
+          renewals: number | null
+          stream_revenue_cents: number | null
+          subscription_revenue_cents: number | null
+          tips_count: number | null
+          tips_revenue_cents: number | null
+          top_earning_content: Json | null
+          top_tippers: Json | null
+        }
+        Insert: {
+          cancellations?: number | null
+          content_revenue_cents?: number | null
+          created_at?: string
+          creator_id: string
+          date?: string
+          growth_rate?: number | null
+          id?: string
+          new_subscriptions?: number | null
+          projected_monthly_revenue_cents?: number | null
+          renewals?: number | null
+          stream_revenue_cents?: number | null
+          subscription_revenue_cents?: number | null
+          tips_count?: number | null
+          tips_revenue_cents?: number | null
+          top_earning_content?: Json | null
+          top_tippers?: Json | null
+        }
+        Update: {
+          cancellations?: number | null
+          content_revenue_cents?: number | null
+          created_at?: string
+          creator_id?: string
+          date?: string
+          growth_rate?: number | null
+          id?: string
+          new_subscriptions?: number | null
+          projected_monthly_revenue_cents?: number | null
+          renewals?: number | null
+          stream_revenue_cents?: number | null
+          subscription_revenue_cents?: number | null
+          tips_count?: number | null
+          tips_revenue_cents?: number | null
+          top_earning_content?: Json | null
+          top_tippers?: Json | null
         }
         Relationships: []
       }
@@ -823,6 +1225,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_engagement_rate: {
+        Args: {
+          comments_count: number
+          likes_count: number
+          shares_count: number
+          views_count: number
+        }
+        Returns: number
+      }
       can_view_post: {
         Args: {
           post_privacy_level: string
@@ -846,6 +1257,18 @@ export type Database = {
       generate_username: {
         Args: { display_name: string; user_id: string }
         Returns: string
+      }
+      get_creator_dashboard_summary: {
+        Args: { creator_uuid: string }
+        Returns: {
+          engagement_rate: number
+          monthly_growth: number
+          recent_achievements: Json
+          today_revenue_cents: number
+          today_views: number
+          top_content: Json
+          total_followers: number
+        }[]
       }
       get_feed_posts: {
         Args: { limit_count?: number; offset_count?: number; viewer_id: string }

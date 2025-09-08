@@ -19,6 +19,7 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const HookupFeed = lazy(() => import("./pages/hookup/HookupFeed"));
 const CreatorMarketplace = lazy(() => import("./pages/creator/CreatorMarketplace"));
 const CreatorProfile = lazy(() => import("./pages/creator/CreatorProfile"));
+const CreatorStudio = lazy(() => import("./pages/creator/CreatorStudio"));
 const LiveCamLounge = lazy(() => import("./pages/live/LiveCamLounge"));
 const LiveStream = lazy(() => import("./pages/live/LiveStream"));
 const BroadcastPage = lazy(() => import("./pages/live/BroadcastPage"));
@@ -96,10 +97,18 @@ const App = () => (
                     </ProtectedRoute>
                   } />
                   
-                  <Route path="/creator/:username" element={
+                   <Route path="/creator/:username" element={
                     <ProtectedRoute>
                       <ErrorBoundary>
                         <CreatorProfile />
+                      </ErrorBoundary>
+                    </ProtectedRoute>
+                  } />
+                  
+                  <Route path="/creator/studio" element={
+                    <ProtectedRoute>
+                      <ErrorBoundary>
+                        <CreatorStudio />
                       </ErrorBoundary>
                     </ProtectedRoute>
                   } />

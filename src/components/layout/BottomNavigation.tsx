@@ -38,6 +38,12 @@ export const BottomNavigation = () => {
       label: 'Profile', 
       path: `/${user?.user_metadata?.username || user?.id}`,
       category: 'profile'
+    },
+    { 
+      icon: BarChart3, 
+      label: 'Studio', 
+      path: '/creator/studio',
+      category: 'creator'
     }
   ];
 
