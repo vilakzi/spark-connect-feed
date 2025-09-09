@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useAuth } from './useAuth';
+import { logWarn } from '@/lib/secureLogger';
 
 interface SwipeProfile {
   id: string;
@@ -23,24 +24,24 @@ export const useSwipeEngine = () => {
 
   const fetchPotentialMatches = useCallback(async () => {
     // Mock function - swipe/matching features would need proper database setup
-    console.log('Fetch potential matches');
+    logWarn('Fetch potential matches called - needs proper database implementation', undefined, 'useSwipeEngine');
     setPotentialMatches([]);
   }, []);
 
   const swipeRight = useCallback(async (profileId: string) => {
     // Mock function
-    console.log('Swipe right:', profileId);
+    logWarn('Swipe right called - needs proper database implementation', { profileId }, 'useSwipeEngine');
     return false; // no match
   }, []);
 
   const swipeLeft = useCallback(async (profileId: string) => {
     // Mock function
-    console.log('Swipe left:', profileId);
+    logWarn('Swipe left called - needs proper database implementation', { profileId }, 'useSwipeEngine');
   }, []);
 
   const superLike = useCallback(async (profileId: string) => {
     // Mock function
-    console.log('Super like:', profileId);
+    logWarn('Super like called - needs proper database implementation', { profileId }, 'useSwipeEngine');
     return false; // no match
   }, []);
 

@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useAuth } from './useAuth';
+import { logWarn } from '@/lib/secureLogger';
 
 export const useUserPreferences = () => {
   const { user } = useAuth();
@@ -20,7 +21,7 @@ export const useUserPreferences = () => {
   const updatePreferences = useCallback(async (newPreferences: any) => {
     // Mock function - preferences would need proper database setup
     setSaving(true);
-    console.log('Update preferences:', newPreferences);
+    logWarn('Update preferences called - needs proper database implementation', newPreferences, 'useUserPreferences');
     setPreferences(prev => ({ ...prev, ...newPreferences }));
     setSaving(false);
     return true;
@@ -28,14 +29,14 @@ export const useUserPreferences = () => {
 
   const getPreferences = useCallback(async () => {
     // Mock function
-    console.log('Get preferences');
+    logWarn('Get preferences called - needs proper database implementation', undefined, 'useUserPreferences');
     return preferences;
   }, [preferences]);
 
   const resetPreferences = useCallback(async () => {
     // Mock function
     setSaving(true);
-    console.log('Reset preferences');
+    logWarn('Reset preferences called - needs proper database implementation', undefined, 'useUserPreferences');
     setPreferences({
       ageRange: [18, 65],
       min_age: 18,

@@ -33,73 +33,32 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let mounted = true;
+    
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
+        if (!mounted) return;
+        
         setSession(session);
         setUser(session?.user ?? null);
-        
-        // Ensure profile exists for authenticated users
-        if (session?.user && event === 'SIGNED_IN') {
-          setTimeout(async () => {
-            try {
-              // Create profile if it doesn't exist
-              const { data: existingProfile } = await supabase
-                .from('profiles')
-                .select('id')
-                .eq('user_id', session.user.id)
-                .single();
-              
-              if (!existingProfile) {
-                await supabase
-                  .from('profiles')
-                  .insert({
-                    user_id: session.user.id,
-                    display_name: session.user.email?.split('@')[0] || 'User'
-                  });
-              }
-            } catch (error) {
-              console.warn('Failed to ensure user profile:', error);
-            }
-          }, 0);
-        }
-        
         setLoading(false);
       }
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) return;
+      
       setSession(session);
       setUser(session?.user ?? null);
-      
-      // Ensure profile exists for existing session
-      if (session?.user) {
-        try {
-          // Create profile if it doesn't exist
-          const { data: existingProfile } = await supabase
-            .from('profiles')
-            .select('id')
-            .eq('user_id', session.user.id)
-            .single();
-          
-          if (!existingProfile) {
-            await supabase
-              .from('profiles')
-              .insert({
-                user_id: session.user.id,
-                display_name: session.user.email?.split('@')[0] || 'User'
-              });
-          }
-        } catch (error) {
-          console.warn('Failed to ensure user profile:', error);
-        }
-      }
-      
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signUp = async (email: string, password: string, displayName: string, userCategory?: string, referralCode?: string) => {

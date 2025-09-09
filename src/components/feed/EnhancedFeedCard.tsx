@@ -210,7 +210,7 @@ export const EnhancedFeedCard: React.FC<EnhancedFeedCardProps> = ({
       
       // Create floating heart animation
       const heart = document.createElement('div');
-      heart.innerHTML = '❤️';
+      heart.textContent = '❤️';
       heart.style.position = 'absolute';
       heart.style.left = `${x}px`;
       heart.style.top = `${y}px`;

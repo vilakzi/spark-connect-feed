@@ -157,7 +157,7 @@ export const RealtimeFeedCard: React.FC<RealtimeFeedCardProps> = ({
       const y = e.clientY - rect.top;
       
       const heart = document.createElement('div');
-      heart.innerHTML = '❤️';
+      heart.textContent = '❤️';
       heart.style.cssText = `
         position: absolute;
         left: ${x}px;

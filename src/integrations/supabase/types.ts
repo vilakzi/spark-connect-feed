@@ -1744,6 +1744,18 @@ export type Database = {
         Args: { target_user_id: string }
         Returns: boolean
       }
+      user_can_view_event: {
+        Args: { _event_id: string; _user_id: string }
+        Returns: boolean
+      }
+      user_is_community_admin: {
+        Args: { _community_id: string; _user_id: string }
+        Returns: boolean
+      }
+      user_is_community_member: {
+        Args: { _community_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
