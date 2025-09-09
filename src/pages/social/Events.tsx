@@ -21,7 +21,7 @@ const Events = () => {
     events, 
     userEvents,
     attendingEvents,
-    isLoadingEvents,
+    loading,
     rsvpEvent 
   } = useEvents();
   
