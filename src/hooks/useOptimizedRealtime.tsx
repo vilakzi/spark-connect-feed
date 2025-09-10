@@ -2,6 +2,7 @@ import { useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import { logDebug } from '@/lib/secureLogger';
 
 interface PresenceMetadata {
   location?: string;
@@ -202,7 +203,7 @@ export const useOptimizedChat = () => {
         filter: `conversation_id=eq.${conversationId}`
       }, (payload) => {
         // Handle new message
-        console.log('New message:', payload);
+        logDebug('New message', payload, 'useOptimizedRealtime');
       })
       .on('postgres_changes', {
         event: 'UPDATE',
@@ -211,7 +212,7 @@ export const useOptimizedChat = () => {
         filter: `conversation_id=eq.${conversationId}`
       }, (payload) => {
         // Handle message update (e.g., read status)
-        console.log('Message updated:', payload);
+        logDebug('Message updated', payload, 'useOptimizedRealtime');
       })
       .subscribe();
 

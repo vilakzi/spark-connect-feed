@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useAuth } from './useAuth';
+import { logDebug } from '@/lib/secureLogger';
 
 interface PresenceUser {
   id: string;
@@ -15,12 +16,12 @@ export const usePresence = () => {
 
   const updatePresence = useCallback(async (status: 'online' | 'offline') => {
     // Mock function
-    console.log('Update presence:', status);
+    logDebug('Update presence', { status }, 'usePresence');
   }, []);
 
   const subscribeToPresence = useCallback(() => {
     // Mock function
-    console.log('Subscribe to presence');
+    logDebug('Subscribe to presence', undefined, 'usePresence');
     return () => {}; // cleanup function
   }, []);
 

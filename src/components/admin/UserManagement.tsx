@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useAdminAnalytics } from '@/hooks/useAdminAnalytics';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { logInfo } from '@/lib/secureLogger';
 import { formatDistanceToNow } from 'date-fns';
 
 interface User {
@@ -127,7 +128,7 @@ export const UserManagement: React.FC = () => {
   };
 
   const handleUserAction = (userId: string, action: string) => {
-    console.log(`${action} user:`, userId);
+    logInfo(`${action} user:`, { userId, action }, 'UserManagement');
     // In a real app, this would make an API call
   };
 

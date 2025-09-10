@@ -17,6 +17,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { logInfo } from '@/lib/secureLogger';
 
 interface User {
   id: string;
@@ -90,7 +91,7 @@ export const UserManagement = () => {
   const handleBlockUser = async (userId: string) => {
     try {
       // Mock blocking - in a real app, this would update user status
-      console.log('Blocking user:', userId);
+      logInfo('Blocking user', { userId }, 'UserManagement');
 
       setUsers(prev => 
         prev.map(user => 
@@ -117,7 +118,7 @@ export const UserManagement = () => {
   const handlePromoteUser = async (userId: string) => {
     try {
       // Mock promotion - in a real app, this would call the promote_to_admin RPC
-      console.log('Promoting user to admin:', userId);
+      logInfo('Promoting user to admin', { userId }, 'UserManagement');
 
       setUsers(prev => 
         prev.map(user => 

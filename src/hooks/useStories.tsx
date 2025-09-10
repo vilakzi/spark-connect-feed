@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useAuth } from './useAuth';
+import { logInfo, logDebug } from '@/lib/secureLogger';
 
 interface Story {
   id: string;
@@ -23,24 +24,24 @@ export const useStories = () => {
 
   const fetchStories = useCallback(async () => {
     // Mock function - stories feature would need proper database setup
-    console.log('Fetch stories');
+    logInfo('Fetch stories', undefined, 'useStories');
     setStories([]);
   }, []);
 
   const createStory = useCallback(async (storyData: any) => {
     // Mock function
-    console.log('Create story:', storyData);
+    logInfo('Create story', { storyData }, 'useStories');
     return null;
   }, []);
 
   const deleteStory = useCallback(async (storyId: string) => {
     // Mock function
-    console.log('Delete story:', storyId);
+    logInfo('Delete story', { storyId }, 'useStories');
   }, []);
 
   const viewStory = useCallback(async (storyId: string) => {
     // Mock function
-    console.log('View story:', storyId);
+    logDebug('View story', { storyId }, 'useStories');
   }, []);
 
   return {

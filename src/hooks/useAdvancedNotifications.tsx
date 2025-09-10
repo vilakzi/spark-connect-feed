@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { logInfo, logDebug } from '@/lib/secureLogger';
 
 interface NotificationPreferences {
   matches: boolean;
@@ -46,7 +47,7 @@ export const useAdvancedNotifications = () => {
     if (!user) return;
     
     try {
-      console.log('Notification preferences update coming soon:', newPreferences);
+      logInfo('Notification preferences update coming soon', { newPreferences }, 'useAdvancedNotifications');
       setPreferences(prev => ({ ...prev, ...newPreferences }));
     } catch (error) {
       console.error('Error updating notification preferences:', error);
@@ -57,7 +58,7 @@ export const useAdvancedNotifications = () => {
     if (!user) return;
     
     try {
-      console.log('Notification scheduling coming soon:', type, data, scheduledFor);
+      logDebug('Notification scheduling coming soon', { type, data, scheduledFor }, 'useAdvancedNotifications');
     } catch (error) {
       console.error('Error scheduling notification:', error);
     }
@@ -67,7 +68,7 @@ export const useAdvancedNotifications = () => {
     if (!user) return [];
     
     try {
-      console.log('Notification history coming soon');
+      logDebug('Notification history coming soon', undefined, 'useAdvancedNotifications');
       return [];
     } catch (error) {
       console.error('Error getting notification history:', error);
@@ -76,7 +77,7 @@ export const useAdvancedNotifications = () => {
   }, [user]);
 
   const requestPushPermission = useCallback(async () => {
-    console.log('Push permission request coming soon');
+    logDebug('Push permission request coming soon', undefined, 'useAdvancedNotifications');
     return true;
   }, []);
 

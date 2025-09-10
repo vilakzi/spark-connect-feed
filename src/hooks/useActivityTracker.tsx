@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useAuth } from './useAuth';
+import { logDebug } from '@/lib/secureLogger';
 
 export const useActivityTracker = () => {
   const { user } = useAuth();
@@ -12,7 +13,7 @@ export const useActivityTracker = () => {
 
   const trackActivity = useCallback(async (activityType: string, duration?: number) => {
     // Mock function
-    console.log('Track activity:', activityType, duration);
+    logDebug('Track activity', { activityType, duration }, 'useActivityTracker');
   }, []);
 
   const getActivityStats = useCallback(async () => {

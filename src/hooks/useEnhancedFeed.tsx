@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from './useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { logDebug } from '@/lib/secureLogger';
 
 export interface FeedPost {
   id: string;
@@ -36,7 +37,7 @@ export const useEnhancedFeed = () => {
 
   const trackUserInteraction = async (postId: string, interactionType: 'like' | 'comment' | 'share' | 'view') => {
     // Mock interaction tracking
-    console.log(`Tracked ${interactionType} on post ${postId}`);
+    logDebug(`Tracked ${interactionType} on post ${postId}`, { postId, interactionType }, 'useEnhancedFeed');
   };
 
   const getFeedPosts = async (offset: number = 0, limit: number = 20): Promise<FeedPost[]> => {

@@ -1,3 +1,5 @@
+import { logDebug } from '@/lib/secureLogger';
+
 export class LiveStreamManager {
   private pc: RTCPeerConnection | null = null;
   private localStream: MediaStream | null = null;
@@ -109,18 +111,18 @@ export class LiveStreamManager {
 
     this.pc.onicecandidate = (event) => {
       if (event.candidate) {
-        console.log('ICE candidate:', event.candidate);
+        logDebug('ICE candidate', event.candidate, 'LiveStreamManager');
         // In real implementation, send to signaling server
       }
     };
 
     this.pc.ontrack = (event) => {
-      console.log('Received remote track');
+      logDebug('Received remote track', undefined, 'LiveStreamManager');
       this.remoteStream = event.streams[0];
     };
 
     this.pc.onconnectionstatechange = () => {
-      console.log('Connection state:', this.pc?.connectionState);
+      logDebug('Connection state', { state: this.pc?.connectionState }, 'LiveStreamManager');
       this.onConnectionStateChange?.(this.pc?.connectionState || 'disconnected');
     };
   }
@@ -133,7 +135,7 @@ export class LiveStreamManager {
     });
 
     this.dataChannel.onopen = () => {
-      console.log('Data channel opened');
+      logDebug('Data channel opened', undefined, 'LiveStreamManager');
     };
 
     this.dataChannel.onmessage = (event) => {

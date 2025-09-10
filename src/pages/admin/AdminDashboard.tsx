@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { logInfo } from '@/lib/secureLogger';
 
 interface DashboardStats {
   totalUsers: number;
@@ -102,7 +103,7 @@ export const AdminDashboard = () => {
   const handleBlockUser = async (userId: string) => {
     try {
       // Mock blocking - in a real app, this would update user status
-      console.log('Blocking user:', userId);
+      logInfo('Blocking user', { userId }, 'AdminDashboard');
       
       setRecentUsers(prev => 
         prev.map(user => 

@@ -320,7 +320,7 @@ export const EnhancedFeedCard: React.FC<EnhancedFeedCardProps> = ({
                   playsInline
                   onClick={togglePlay}
                   onLoadStart={() => setShowPlayButton(true)}
-                  onCanPlay={() => console.log('Video ready to play')}
+                  onCanPlay={() => logDebug('Video ready to play', undefined, 'EnhancedFeedCard')}
                   onError={(e) => {
                     console.error('Video error:', e);
                     setShowPlayButton(true);

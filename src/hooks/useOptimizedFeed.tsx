@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuth } from './useAuth';
 import { useAdvancedFeedAlgorithm } from './useAdvancedFeedAlgorithm';
 import { supabase } from '@/integrations/supabase/client';
+import { logError } from '@/lib/secureLogger';
 
 interface FeedPost {
   id: string;
@@ -197,7 +198,7 @@ export const useOptimizedFeed = () => {
         
       if (error) console.error('Interaction tracking error:', error);
     } catch (error) {
-      console.log('Interaction tracking failed:', error);
+      logError('Interaction tracking failed', { error }, 'useOptimizedFeed');
     }
   }, [user, algorithm]);
 

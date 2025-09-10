@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAdvancedNotifications } from '@/hooks/useAdvancedNotifications';
 import { cn } from '@/lib/utils';
+import { logWarn } from '@/lib/secureLogger';
 
 interface NotificationSettingsProps {
   onBack?: () => void;
@@ -75,7 +76,7 @@ export const NotificationSettings = ({ onBack }: NotificationSettingsProps) => {
     const granted = await requestPushPermission();
     setHasRequestedPermission(true);
     if (!granted) {
-      console.log('Push permission denied');
+      logWarn('Push permission denied', undefined, 'NotificationSettings');
     }
   };
 

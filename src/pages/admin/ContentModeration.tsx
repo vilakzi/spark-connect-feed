@@ -17,6 +17,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { logInfo } from '@/lib/secureLogger';
 
 interface ContentItem {
   id: string;
@@ -88,7 +89,7 @@ export const ContentModeration = () => {
   const handleApproval = async (contentId: string, action: 'approve' | 'reject') => {
     try {
       // Mock approval - in a real app, this would update approval status
-      console.log(`${action} content:`, contentId);
+      logInfo(`${action} content`, { contentId, action }, 'ContentModeration');
 
       setContent(prev => 
         prev.map(item => 
@@ -115,7 +116,7 @@ export const ContentModeration = () => {
   const handlePromotion = async (contentId: string, promote: boolean) => {
     try {
       // Mock promotion - in a real app, this would call RPC functions
-      console.log(`${promote ? 'Promote' : 'Unpromote'} content:`, contentId);
+      logInfo(`${promote ? 'Promote' : 'Unpromote'} content`, { contentId, promote }, 'ContentModeration');
 
       setContent(prev => 
         prev.map(item => 

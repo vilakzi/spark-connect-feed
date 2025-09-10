@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
-import { useAuth } from './useAuth';
+import { useAuth } from '@/hooks/useAuth';
+import { logDebug } from '@/lib/secureLogger';
 
 interface FeedPost {
   post_id: string;
@@ -24,13 +25,13 @@ export const useRealtimeFeed = () => {
 
   const subscribeToFeed = useCallback(() => {
     // Mock function - realtime features would need proper setup
-    console.log('Subscribe to realtime feed');
+    logDebug('Subscribe to realtime feed', undefined, 'useRealtimeFeed');
     return () => {}; // cleanup function
   }, []);
 
   const refreshFeed = useCallback(async () => {
     // Mock function
-    console.log('Refresh feed');
+    logDebug('Refresh feed', undefined, 'useRealtimeFeed');
     setPosts([]);
   }, []);
 
@@ -50,17 +51,17 @@ export const useRealtimeFeed = () => {
 
   const likePost = useCallback(async (postId: string) => {
     // Mock function
-    console.log('Like post:', postId);
+    logDebug('Like post', { postId }, 'useRealtimeFeed');
   }, []);
 
   const sharePost = useCallback(async (postId: string) => {
     // Mock function
-    console.log('Share post:', postId);
+    logDebug('Share post', { postId }, 'useRealtimeFeed');
   }, []);
 
   const trackView = useCallback(async (postId: string) => {
     // Mock function
-    console.log('Track view:', postId);
+    logDebug('Track view', { postId }, 'useRealtimeFeed');
   }, []);
 
   return {

@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { logInfo, logDebug } from '@/lib/secureLogger';
 
 interface MatchingPreferences {
   ageRange: [number, number];
@@ -33,7 +34,7 @@ export const useAIMatching = () => {
       setLoading(true);
       
       // AI matching not implemented yet - return placeholder
-      console.log('AI matching feature coming soon');
+      logInfo('AI matching feature coming soon', undefined, 'useAIMatching');
       
       return profileIds.map(id => ({
         profileId: id,
@@ -55,7 +56,7 @@ export const useAIMatching = () => {
     if (!user) return;
     
     try {
-      console.log('Updating preferences:', newPreferences);
+      logDebug('Updating preferences', { newPreferences }, 'useAIMatching');
       setPreferences(prev => ({ ...prev, ...newPreferences }));
     } catch (error) {
       console.error('Error updating preferences:', error);
@@ -69,7 +70,7 @@ export const useAIMatching = () => {
       setLoading(true);
       
       // Compatibility analysis not implemented yet
-      console.log('Compatibility analysis coming soon for profile:', profileId);
+      logDebug('Compatibility analysis coming soon for profile', { profileId }, 'useAIMatching');
       
       return {
         profileId,
@@ -89,7 +90,7 @@ export const useAIMatching = () => {
 
   // Add missing properties for compatibility
   const getMatchSuggestions = useCallback(async () => {
-    console.log('Match suggestions coming soon');
+    logInfo('Match suggestions coming soon', undefined, 'useAIMatching');
     return [];
   }, []);
 

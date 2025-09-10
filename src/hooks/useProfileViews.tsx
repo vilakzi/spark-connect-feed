@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useAuth } from './useAuth';
+import { logDebug } from '@/lib/secureLogger';
 
 interface ProfileView {
   id: string;
@@ -25,7 +26,7 @@ export const useProfileViews = () => {
 
   const trackProfileView = useCallback(async (profileId: string) => {
     // Mock function - profile_views table doesn't exist
-    console.log('Track profile view:', profileId);
+    logDebug('Track profile view', { profileId }, 'useProfileViews');
   }, []);
 
   const getProfileViews = useCallback(async () => {

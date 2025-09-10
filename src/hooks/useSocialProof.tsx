@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useAuth } from './useAuth';
+import { logDebug } from '@/lib/secureLogger';
 
 export const useSocialProof = () => {
   const { user } = useAuth();
@@ -11,7 +12,7 @@ export const useSocialProof = () => {
 
   const calculateSocialProof = useCallback(async (targetUserId: string) => {
     // Mock function - social proof features would need proper database setup
-    console.log('Calculate social proof for:', targetUserId);
+    logDebug('Calculate social proof for', { targetUserId }, 'useSocialProof');
     return {
       mutualFriends: [],
       commonInterests: [],
@@ -21,13 +22,13 @@ export const useSocialProof = () => {
 
   const getMutualConnections = useCallback(async (targetUserId: string) => {
     // Mock function
-    console.log('Get mutual connections:', targetUserId);
+    logDebug('Get mutual connections', { targetUserId }, 'useSocialProof');
     return [];
   }, []);
 
   const getCommonInterests = useCallback(async (targetUserId: string) => {
     // Mock function
-    console.log('Get common interests:', targetUserId);
+    logDebug('Get common interests', { targetUserId }, 'useSocialProof');
     return [];
   }, []);
 
