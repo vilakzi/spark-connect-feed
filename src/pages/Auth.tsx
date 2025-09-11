@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
+import { useSecureAuth } from '@/hooks/useSecureAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { PasswordStrength } from '@/components/ui/password-strength';
 import { supabase } from '@/integrations/supabase/client';
 
 const Auth = () => {
@@ -16,7 +17,7 @@ const Auth = () => {
   const [displayName, setDisplayName] = useState('');
   const [userCategory, setUserCategory] = useState<'hookup' | 'creator' | 'viewer'>('viewer');
   const [loading, setLoading] = useState(false);
-  const { signIn, signUp, signInWithGoogle } = useAuth();
+  const { signIn, signUp, signInWithGoogle } = useSecureAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const referralCode = searchParams.get('ref');
@@ -172,6 +173,7 @@ const Auth = () => {
                     required
                     minLength={8}
                   />
+                  {password && <PasswordStrength password={password} />}
                 </div>
                 
                 <div className="space-y-2">

@@ -1134,6 +1134,27 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limits: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          rate_key: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          rate_key: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          rate_key?: string
+        }
+        Relationships: []
+      }
       referrals: {
         Row: {
           created_at: string

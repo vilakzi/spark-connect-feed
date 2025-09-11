@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useAuth } from './useAuth';
-import { validateEmail, validateDisplayName, isRateLimited } from '@/lib/securityUtils';
+import { validateEmail, validateDisplayName, validatePassword, isRateLimited } from '@/lib/securityUtils';
+import { useServerSideRateLimit } from './useServerSideRateLimit';
 import { toast } from './use-toast';
 
 /**
@@ -8,6 +9,7 @@ import { toast } from './use-toast';
  */
 export const useSecureAuth = () => {
   const auth = useAuth();
+  const { checkRateLimit } = useServerSideRateLimit();
 
   const secureSignUp = useCallback(async (
     email: string, 
@@ -16,9 +18,25 @@ export const useSecureAuth = () => {
     userCategory?: string, 
     referralCode?: string
   ) => {
-    // Rate limiting
-    const clientId = 'signup_' + (typeof window !== 'undefined' ? window.navigator.userAgent : 'server');
-    if (isRateLimited(clientId, 3, 300000)) { // 3 attempts per 5 minutes
+    // Server-side rate limiting
+    const clientId = 'signup_' + (typeof window !== 'undefined' ? window.navigator.userAgent.slice(0, 50) : 'server');
+    const rateLimitResult = await checkRateLimit(clientId, {
+      maxRequests: 3,
+      windowMs: 300000, // 5 minutes
+      action: 'signup'
+    });
+
+    if (!rateLimitResult.allowed) {
+      toast({
+        title: "Too many attempts",
+        description: rateLimitResult.message || "Please wait before trying to sign up again.",
+        variant: "destructive"
+      });
+      return { error: new Error('Rate limited') };
+    }
+
+    // Client-side fallback rate limiting
+    if (isRateLimited(clientId, 3, 300000)) {
       toast({
         title: "Too many attempts",
         description: "Please wait before trying to sign up again.",
@@ -46,22 +64,40 @@ export const useSecureAuth = () => {
       return { error: new Error('Invalid display name') };
     }
 
-    if (password.length < 8) {
+    // Enhanced password validation
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.isValid) {
       toast({
-        title: "Password too short",
-        description: "Password must be at least 8 characters long.",
+        title: "Invalid password",
+        description: passwordValidation.message,
         variant: "destructive"
       });
-      return { error: new Error('Password too short') };
+      return { error: new Error(passwordValidation.message) };
     }
 
     return auth.signUp(email, password, displayName, userCategory, referralCode);
-  }, [auth]);
+  }, [auth, checkRateLimit]);
 
   const secureSignIn = useCallback(async (email: string, password: string) => {
-    // Rate limiting
+    // Server-side rate limiting
     const clientId = 'signin_' + email;
-    if (isRateLimited(clientId, 5, 300000)) { // 5 attempts per 5 minutes per email
+    const rateLimitResult = await checkRateLimit(clientId, {
+      maxRequests: 5,
+      windowMs: 300000, // 5 minutes
+      action: 'signin'
+    });
+
+    if (!rateLimitResult.allowed) {
+      toast({
+        title: "Too many attempts",
+        description: rateLimitResult.message || "Please wait before trying to sign in again.",
+        variant: "destructive"
+      });
+      return { error: new Error('Rate limited') };
+    }
+
+    // Client-side fallback rate limiting
+    if (isRateLimited(clientId, 5, 300000)) {
       toast({
         title: "Too many attempts",
         description: "Please wait before trying to sign in again.",
@@ -80,7 +116,7 @@ export const useSecureAuth = () => {
     }
 
     return auth.signIn(email, password);
-  }, [auth]);
+  }, [auth, checkRateLimit]);
 
   return {
     ...auth,
