@@ -22,6 +22,7 @@ import {
 import { formatDistanceToNow } from 'date-fns';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useEnhancedFeed } from '@/hooks/useEnhancedFeed';
+import { logDebug } from '@/lib/secureLogger';
 
 interface FeedPost {
   post_id: string;
