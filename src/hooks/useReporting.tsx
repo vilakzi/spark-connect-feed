@@ -28,10 +28,11 @@ export const useReporting = () => {
     setSubmitting(true);
     try {
       const { error } = await supabase
-        .from('user_reports')
+        .from('moderation_reports')
         .insert({
           reporter_id: user.id,
-          reported_id: reportedUserId,
+          reported_user_id: reportedUserId,
+          content_type: 'user',
           reason: reportData.reason,
           description: reportData.description,
           evidence_urls: reportData.evidenceUrls || []

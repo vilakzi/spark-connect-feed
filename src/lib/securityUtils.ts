@@ -23,6 +23,22 @@ export const validateDisplayName = (name: string): boolean => {
   return name.length >= 1 && name.length <= 50 && !/[<>]/.test(name);
 };
 
+export const validatePassword = (password: string): { isValid: boolean; message?: string } => {
+  if (password.length < 8) {
+    return { isValid: false, message: "Password must be at least 8 characters long" };
+  }
+  if (!/(?=.*[a-z])/.test(password)) {
+    return { isValid: false, message: "Password must contain at least one lowercase letter" };
+  }
+  if (!/(?=.*[A-Z])/.test(password)) {
+    return { isValid: false, message: "Password must contain at least one uppercase letter" };
+  }
+  if (!/(?=.*\d)/.test(password)) {
+    return { isValid: false, message: "Password must contain at least one number" };
+  }
+  return { isValid: true };
+};
+
 // Rate limiting helpers
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 
