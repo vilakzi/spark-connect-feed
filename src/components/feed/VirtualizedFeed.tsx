@@ -7,11 +7,18 @@ import { PostComposer } from './PostComposer';
 import { useRealtimeFeed } from '@/hooks/useRealtimeFeed';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useState, useEffect } from 'react';
+import { useEnhancedPerformanceMonitor } from '@/hooks/useEnhancedPerformanceMonitor';
 
 const ESTIMATED_ITEM_HEIGHT = 400;
 const OVERSCAN = 5;
 
 export const VirtualizedFeed = () => {
+  const { trackInteraction, getMetrics } = useEnhancedPerformanceMonitor('VirtualizedFeed', {
+    trackMemory: true,
+    trackInteractions: true,
+    sampleRate: 0.1 // Sample 10% of renders for performance
+  });
+
   const {
     posts,
     isLoading,
@@ -82,8 +89,9 @@ export const VirtualizedFeed = () => {
   }, [virtualItems, items.length, hasNextPage, isFetchingNextPage, prefetchNextPage]);
 
   const handleRefresh = useCallback(() => {
+    trackInteraction('refresh');
     refreshFeed();
-  }, [refreshFeed]);
+  }, [refreshFeed, trackInteraction]);
 
   // Loading skeleton
   if (isLoading && posts.length === 0) {
@@ -174,7 +182,10 @@ export const VirtualizedFeed = () => {
               </Button>
               <Button
                 size="sm"
-                onClick={() => setShowComposer(true)}
+                onClick={() => {
+                  trackInteraction('compose-post');
+                  setShowComposer(true);
+                }}
                 className="gap-2 bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity"
               >
                 <Plus className="w-4 h-4" />
@@ -231,9 +242,15 @@ export const VirtualizedFeed = () => {
                     ) : (
                       <RealtimeFeedCard
                         post={item}
-            onLike={() => likePost(item.post_id)}
-            onShare={() => sharePost(item.post_id)}
-            onView={() => trackView(item.post_id)}
+                        onLike={() => {
+                          trackInteraction('like');
+                          likePost(item.post_id);
+                        }}
+                        onShare={() => {
+                          trackInteraction('share');
+                          sharePost(item.post_id);
+                        }}
+                        onView={() => trackView(item.post_id)}
                         isLast={virtualItem.index === items.length - 1}
                       />
                     )}

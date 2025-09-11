@@ -10,8 +10,18 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Heart, Users, TrendingUp, MessageCircle, Video, Eye, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useEnhancedPerformanceMonitor } from '@/hooks/useEnhancedPerformanceMonitor';
+import { LazyComponentWrapper } from '@/components/performance/LazyComponentWrapper';
+import { PerformanceDashboard } from '@/components/performance/PerformanceDashboard';
+import { trackPageNavigation } from '@/lib/performanceAnalytics';
 
 const Index = () => {
+  const { trackInteraction } = useEnhancedPerformanceMonitor('IndexPage', {
+    trackMemory: true,
+    trackInteractions: true,
+    sampleRate: 0.2
+  });
+
   const { user } = useAuth();
   const { updatePresence } = usePresence();
   const [userProfile, setUserProfile] = useState(null);
@@ -80,7 +90,13 @@ const Index = () => {
 
         {/* Quick Action Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Link to="/hookup">
+          <Link to="/hookup" onClick={() => {
+            trackInteraction('navigate-hookup');
+            const startTime = performance.now();
+            setTimeout(() => {
+              trackPageNavigation('Index', '/hookup', performance.now() - startTime);
+            }, 100);
+          }}>
             <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer group">
               <CardHeader className="text-center">
                 <div className="w-12 h-12 mx-auto bg-gradient-to-br from-pink-500 to-rose-600 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
@@ -204,11 +220,18 @@ const Index = () => {
           </div>
         )}
 
-        {/* Main Feed */}
+        {/* Main Feed - Lazy loaded */}
         <div className="space-y-4">
           <h2 className="text-2xl font-bold">Latest Posts</h2>
-          <EnhancedFeed />
+          <LazyComponentWrapper
+            factory={() => import('@/components/feed/EnhancedFeed').then(module => ({ default: module.EnhancedFeed }))}
+            componentName="EnhancedFeed"
+            skeletonHeight={600}
+          />
         </div>
+
+        {/* Performance Dashboard - Only in development */}
+        {import.meta.env.DEV && <PerformanceDashboard />}
       </div>
     </MainLayout>
   );

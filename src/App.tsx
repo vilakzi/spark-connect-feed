@@ -8,7 +8,10 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import { AdminRoute } from "@/components/admin/AdminRoute";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect } from "react";
+import { setupPerformanceOptimizations } from "@/lib/performanceOptimizations";
+import { withPerformanceMonitoring } from "@/hooks/usePerformanceMonitor";
+import { logInfo } from '@/lib/secureLogger';
 
 // Lazy load pages for code splitting
 const Index = lazy(() => import("./pages/Index"));
@@ -62,131 +65,144 @@ const queryClient = new QueryClient({
   },
 });
 
-const App = () => (
-  <ErrorBoundary>
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <ErrorBoundary>
-              <Suspense fallback={<LoadingSpinner />}>
-                <Routes>
-                  <Route path="/auth" element={<Auth />} />
-                  <Route path="/" element={
-                    <ProtectedRoute>
-                      <ErrorBoundary>
-                        <Index />
-                      </ErrorBoundary>
-                    </ProtectedRoute>
-                  } />
-                  
-                  {/* Category-specific Routes */}
-                  <Route path="/hookup" element={
-                    <ProtectedRoute>
-                      <ErrorBoundary>
-                        <HookupFeed />
-                      </ErrorBoundary>
-                    </ProtectedRoute>
-                  } />
-                  
-                  <Route path="/creators" element={
-                    <ProtectedRoute>
-                      <ErrorBoundary>
-                        <CreatorMarketplace />
-                      </ErrorBoundary>
-                    </ProtectedRoute>
-                  } />
-                  
-                   <Route path="/creator/:username" element={
-                    <ProtectedRoute>
-                      <ErrorBoundary>
-                        <CreatorProfile />
-                      </ErrorBoundary>
-                    </ProtectedRoute>
-                  } />
-                  
-                  <Route path="/creator/studio" element={
-                    <ProtectedRoute>
-                      <ErrorBoundary>
-                        <CreatorStudio />
-                      </ErrorBoundary>
-                    </ProtectedRoute>
-                  } />
-                  
-                  <Route path="/communities" element={
-                    <ProtectedRoute>
-                      <ErrorBoundary>
-                        <Communities />
-                      </ErrorBoundary>
-                    </ProtectedRoute>
-                  } />
-                  
-                  <Route path="/events" element={
-                    <ProtectedRoute>
-                      <ErrorBoundary>
-                        <Events />
-                      </ErrorBoundary>
-                    </ProtectedRoute>
-                  } />
-                  
-                  <Route path="/live" element={
-                    <ProtectedRoute>
-                      <ErrorBoundary>
-                        <LiveCamLounge />
-                      </ErrorBoundary>
-                    </ProtectedRoute>
-                  } />
-                  
-                  <Route path="/live/:streamId" element={
-                    <ProtectedRoute>
-                      <ErrorBoundary>
-                        <LiveStream />
-                      </ErrorBoundary>
-                    </ProtectedRoute>
-                  } />
-                  
-                  <Route path="/live/broadcast" element={
-                    <ProtectedRoute>
-                      <ErrorBoundary>
-                        <BroadcastPage />
-                      </ErrorBoundary>
-                    </ProtectedRoute>
-                  } />
-                  
-                  {/* Profile Routes */}
-                  <Route path="/:username" element={
-                    <ErrorBoundary>
-                      <UserProfile />
-                    </ErrorBoundary>
-                  } />
-                  
-                  {/* Admin Routes */}
-                  <Route path="/admin" element={
-                    <AdminRoute>
-                      <ErrorBoundary>
-                        <AdminLayout />
-                      </ErrorBoundary>
-                    </AdminRoute>
-                  }>
-                    <Route index element={<AdminDashboard />} />
-                    <Route path="users" element={<UserManagement />} />
-                    <Route path="content" element={<ContentModeration />} />
-                    <Route path="analytics" element={<Analytics />} />
-                    <Route path="settings" element={<AdminSettings />} />
-                  </Route>
-                  
-                  {/* 404 Route */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </Suspense>
-            </ErrorBoundary>
-          </BrowserRouter>
-        </TooltipProvider>
-      </AuthProvider>
-    </QueryClientProvider>
-  </ErrorBoundary>
-);
+const App = () => {
+  // Setup performance optimizations on mount
+  useEffect(() => {
+    logInfo('Initializing performance optimizations', {}, 'App');
+    const cleanup = setupPerformanceOptimizations();
+    
+    return cleanup;
+  }, []);
 
-export default App;
+  return (
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <ErrorBoundary>
+                <Suspense fallback={<LoadingSpinner />}>
+                  <Routes>
+                    <Route path="/auth" element={<Auth />} />
+                    <Route path="/" element={
+                      <ProtectedRoute>
+                        <ErrorBoundary>
+                          <Index />
+                        </ErrorBoundary>
+                      </ProtectedRoute>
+                    } />
+                    
+                    {/* Category-specific Routes */}
+                    <Route path="/hookup" element={
+                      <ProtectedRoute>
+                        <ErrorBoundary>
+                          <HookupFeed />
+                        </ErrorBoundary>
+                      </ProtectedRoute>
+                    } />
+                    
+                    <Route path="/creators" element={
+                      <ProtectedRoute>
+                        <ErrorBoundary>
+                          <CreatorMarketplace />
+                        </ErrorBoundary>
+                      </ProtectedRoute>
+                    } />
+                    
+                     <Route path="/creator/:username" element={
+                      <ProtectedRoute>
+                        <ErrorBoundary>
+                          <CreatorProfile />
+                        </ErrorBoundary>
+                      </ProtectedRoute>
+                    } />
+                    
+                    <Route path="/creator/studio" element={
+                      <ProtectedRoute>
+                        <ErrorBoundary>
+                          <CreatorStudio />
+                        </ErrorBoundary>
+                      </ProtectedRoute>
+                    } />
+                    
+                    <Route path="/communities" element={
+                      <ProtectedRoute>
+                        <ErrorBoundary>
+                          <Communities />
+                        </ErrorBoundary>
+                      </ProtectedRoute>
+                    } />
+                    
+                    <Route path="/events" element={
+                      <ProtectedRoute>
+                        <ErrorBoundary>
+                          <Events />
+                        </ErrorBoundary>
+                      </ProtectedRoute>
+                    } />
+                    
+                    <Route path="/live" element={
+                      <ProtectedRoute>
+                        <ErrorBoundary>
+                          <LiveCamLounge />
+                        </ErrorBoundary>
+                      </ProtectedRoute>
+                    } />
+                    
+                    <Route path="/live/:streamId" element={
+                      <ProtectedRoute>
+                        <ErrorBoundary>
+                          <LiveStream />
+                        </ErrorBoundary>
+                      </ProtectedRoute>
+                    } />
+                    
+                    <Route path="/live/broadcast" element={
+                      <ProtectedRoute>
+                        <ErrorBoundary>
+                          <BroadcastPage />
+                        </ErrorBoundary>
+                      </ProtectedRoute>
+                    } />
+                    
+                    {/* Profile Routes */}
+                    <Route path="/:username" element={
+                      <ErrorBoundary>
+                        <UserProfile />
+                      </ErrorBoundary>
+                    } />
+                    
+                    {/* Admin Routes */}
+                    <Route path="/admin" element={
+                      <AdminRoute>
+                        <ErrorBoundary>
+                          <AdminLayout />
+                        </ErrorBoundary>
+                      </AdminRoute>
+                    }>
+                      <Route index element={<AdminDashboard />} />
+                      <Route path="users" element={<UserManagement />} />
+                      <Route path="content" element={<ContentModeration />} />
+                      <Route path="analytics" element={<Analytics />} />
+                      <Route path="settings" element={<AdminSettings />} />
+                    </Route>
+                    
+                    {/* 404 Route */}
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </Suspense>
+              </ErrorBoundary>
+            </BrowserRouter>
+          </TooltipProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
+  );
+};
+
+// Wrap App with performance monitoring
+const MonitoredApp = withPerformanceMonitoring(App, 'App');
+
+export default MonitoredApp;

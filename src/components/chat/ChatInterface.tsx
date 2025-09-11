@@ -9,6 +9,7 @@ import { TypingIndicator } from './TypingIndicator';
 import { useChat } from '@/hooks/useChat';
 import { usePresence } from '@/hooks/usePresence';
 import { useAuth } from '@/hooks/useAuth';
+import { useEnhancedPerformanceMonitor } from '@/hooks/useEnhancedPerformanceMonitor';
 
 interface ChatInterfaceProps {
   conversationId: string;
@@ -16,6 +17,11 @@ interface ChatInterfaceProps {
 }
 
 export const ChatInterface = ({ conversationId, onBack }: ChatInterfaceProps) => {
+  const { trackInteraction } = useEnhancedPerformanceMonitor('ChatInterface', {
+    trackInteractions: true,
+    sampleRate: 0.3 // Sample 30% of renders for chat performance
+  });
+
   const { 
     messages, 
     conversations, 
@@ -54,6 +60,7 @@ export const ChatInterface = ({ conversationId, onBack }: ChatInterfaceProps) =>
   }, [messages]);
 
   const handleSendMessage = async (content: string) => {
+    trackInteraction('send-message');
     await sendMessage(conversationId, content);
   };
 
@@ -85,7 +92,10 @@ export const ChatInterface = ({ conversationId, onBack }: ChatInterfaceProps) =>
       <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center space-x-3">
-            <Button variant="ghost" size="sm" onClick={onBack}>
+            <Button variant="ghost" size="sm" onClick={() => {
+              trackInteraction('back-navigation');
+              onBack();
+            }}>
               <ArrowLeft className="h-4 w-4" />
             </Button>
             
