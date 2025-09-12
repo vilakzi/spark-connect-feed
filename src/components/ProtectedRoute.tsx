@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { SecurityProvider } from './SecurityProvider';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -23,7 +24,11 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     return <Navigate to="/auth" replace />;
   }
 
-  return <>{children}</>;
+  return (
+    <SecurityProvider>
+      {children}
+    </SecurityProvider>
+  );
 };
 
 export default ProtectedRoute;

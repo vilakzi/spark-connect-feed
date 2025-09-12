@@ -2,11 +2,27 @@
  * Security utilities for input validation and sanitization
  */
 
-// Input sanitization
+// Enhanced input sanitization
 export const sanitizeString = (input: string): string => {
   return input.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
               .replace(/javascript:/gi, '')
-              .replace(/on\w+\s*=/gi, '');
+              .replace(/on\w+\s*=/gi, '')
+              .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+              .replace(/<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi, '')
+              .replace(/<embed\b[^<]*>/gi, '')
+              .replace(/data:\s*text\/html/gi, '');
+};
+
+export const sanitizeHtml = (input: string): string => {
+  const allowedTags = ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
+  const tagRegex = /<\/?([a-zA-Z][a-zA-Z0-9]*)\b[^>]*>/gi;
+  
+  return input.replace(tagRegex, (match, tagName) => {
+    if (allowedTags.includes(tagName.toLowerCase())) {
+      return match.replace(/on\w+\s*=\s*["'][^"']*["']/gi, '');
+    }
+    return '';
+  });
 };
 
 export const validateEmail = (email: string): boolean => {
