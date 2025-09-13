@@ -95,7 +95,8 @@ ${colorConfig
       itemConfig.color;
     
     // Validate color is safe CSS color
-    if (color && /^(#[0-9a-f]{3,8}|hsl\([^)]*\)|rgb\([^)]*\)|\w+)$/i.test(color)) {
+    const colorRegex = /^(#[0-9a-f]{3,8}|hsl\([^)]*\)|rgb\([^)]*\)|\w+)$/i;
+    if (color && colorRegex.test(color)) {
       return `  --color-${key}: ${color};`;
     }
     return null;
