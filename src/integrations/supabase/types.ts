@@ -1774,6 +1774,21 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_safe_community_invite: {
+        Args: { invite_id: string }
+        Returns: {
+          community_id: string
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invite_code: string
+          invitee_id: string
+          inviter_id: string
+          status: string
+          used_at: string
+        }[]
+      }
       get_stream_with_analytics: {
         Args: { stream_uuid: string }
         Returns: {
