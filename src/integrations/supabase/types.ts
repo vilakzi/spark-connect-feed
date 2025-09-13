@@ -1236,6 +1236,42 @@ export type Database = {
         }
         Relationships: []
       }
+      security_audit_log: {
+        Row: {
+          action: string
+          created_at: string | null
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          record_id: string | null
+          table_name: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          record_id?: string | null
+          table_name: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          record_id?: string | null
+          table_name?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       stream_analytics: {
         Row: {
           chat_messages_count: number | null
@@ -1660,6 +1696,14 @@ export type Database = {
         }
         Returns: number
       }
+      can_view_invite_email: {
+        Args: {
+          invite_email: string
+          invite_invitee_id: string
+          invite_inviter_id: string
+        }
+        Returns: boolean
+      }
       can_view_post: {
         Args: {
           post_privacy_level: string
@@ -1758,6 +1802,10 @@ export type Database = {
         Returns: boolean
       }
       is_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      is_service_role: {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
