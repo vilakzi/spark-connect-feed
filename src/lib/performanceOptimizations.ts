@@ -70,7 +70,7 @@ export const optimizedFetch = async (
 export const detectMemoryLeaks = () => {
   if ('memory' in performance) {
     const memory = (performance as any).memory;
-    const threshold = 50 * 1024 * 1024; // 50MB
+    const threshold = 150 * 1024 * 1024; // 150MB - more reasonable for complex apps
 
     if (memory.usedJSHeapSize > threshold) {
       logWarn('Potential memory leak detected', {
