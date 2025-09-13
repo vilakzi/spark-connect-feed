@@ -74,26 +74,46 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
     return null
   }
 
+  // Validate theme configuration before rendering
+  const validatedThemes = Object.fromEntries(
+    Object.entries(THEMES).filter(([key]) => /^[a-zA-Z0-9_-]+$/.test(key))
+  );
+
+  const safeStyleContent = Object.entries(validatedThemes)
+    .map(([theme, prefix]) => {
+      // Ensure prefix is safe
+      const safePrefix = typeof prefix === 'string' ? prefix.replace(/[<>'"]/g, '') : '';
+      return `
+${safePrefix} [data-chart=${id}] {
+${colorConfig
+  .map(([key, itemConfig]) => {
+    // Validate key is safe
+    if (!/^[a-zA-Z0-9_-]+$/.test(key)) return null;
+    
+    const color =
+      itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
+      itemConfig.color;
+    
+    // Validate color is safe CSS color
+    if (color && /^(#[0-9a-f]{3,8}|hsl\([^)]*\)|rgb\([^)]*\)|\w+)$/i.test(color)) {
+      return `  --color-${key}: ${color};`;
+    }
+    return null;
+  })
+  .filter(Boolean)
+  .join('\n')}
+}`;
+    })
+    .join('');
+
   return (
     <style
       dangerouslySetInnerHTML={{
-        __html: Object.entries(THEMES)
-          .map(
-            ([theme, prefix]) => `
-${prefix} [data-chart=${id}] {
-${colorConfig
-  .map(([key, itemConfig]) => {
-    const color =
-      itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
-      itemConfig.color
-    return color ? `  --color-${key}: ${color};` : null
-  })
-  .join("\n")}
-}
-`
-          )
-          .join("\n"),
+        __html: safeStyleContent
       }}
+    />
+  )
+}
     />
   )
 }

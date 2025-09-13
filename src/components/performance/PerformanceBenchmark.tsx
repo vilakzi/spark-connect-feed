@@ -40,7 +40,9 @@ export const PerformanceBenchmark = () => {
       
       for (let i = 0; i < 1000; i++) {
         const element = document.createElement('div');
-        element.innerHTML = `<span>Benchmark Item ${i}</span>`;
+        const span = document.createElement('span');
+        span.textContent = `Benchmark Item ${i}`; // Safe text content instead of innerHTML
+        element.appendChild(span);
         element.style.backgroundColor = `hsl(${i % 360}, 70%, 50%)`;
         container.appendChild(element);
       }
