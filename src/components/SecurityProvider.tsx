@@ -7,8 +7,12 @@ interface SecurityProviderProps {
 
 export const SecurityProvider = ({ children }: SecurityProviderProps) => {
   useEffect(() => {
-    // Apply security headers on mount
-    applySecurityHeaders();
+    // Only apply security headers in production, not in development or Lovable environments
+    if (window.location.hostname !== 'localhost' && 
+        !window.location.hostname.includes('lovable') &&
+        !window.location.hostname.includes('127.0.0.1')) {
+      applySecurityHeaders();
+    }
     
     // Set up CSP violation reporting
     const handleCSPViolation = (event: SecurityPolicyViolationEvent) => {
