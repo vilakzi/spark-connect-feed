@@ -26,19 +26,21 @@ export const getSecurityHeaders = (includeCSP = true): SecurityHeaders => {
     headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload';
   }
 
-  // Content Security Policy - relaxed for development and publishing
+  // Content Security Policy - strengthened security
   if (includeCSP && window.location.hostname !== 'localhost' && !window.location.hostname.includes('lovable')) {
     const csp = [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:",
+      "script-src 'self' https:",
       "style-src 'self' 'unsafe-inline' https:",
       "font-src 'self' https:",
       "img-src 'self' data: blob: https:",
       "media-src 'self' blob: https:",
       "connect-src 'self' https: wss:",
+      "object-src 'none'",
       "frame-ancestors 'none'",
       "base-uri 'self'",
-      "form-action 'self'"
+      "form-action 'self'",
+      "upgrade-insecure-requests"
     ].join('; ');
     
     headers['Content-Security-Policy'] = csp;
