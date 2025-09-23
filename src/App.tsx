@@ -10,7 +10,6 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Suspense, lazy, useEffect } from "react";
 import { setupPerformanceOptimizations } from "@/lib/performanceOptimizations";
-import { withPerformanceMonitoring } from "@/hooks/usePerformanceMonitor";
 import { logInfo } from '@/lib/secureLogger';
 
 // Lazy load pages for code splitting
@@ -202,7 +201,4 @@ const App = () => {
   );
 };
 
-// Wrap App with performance monitoring
-const MonitoredApp = withPerformanceMonitoring(App, 'App');
-
-export default MonitoredApp;
+export default App;
