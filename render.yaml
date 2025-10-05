@@ -1,9 +1,10 @@
 services:
   - type: web
     name: spark-connect-feed
-    env: static
-    buildCommand: npm run build
+    runtime: static
+    buildCommand: npm install --legacy-peer-deps && npm run build
     staticPublishPath: ./dist
+    pullRequestPreviewsEnabled: true
     headers:
       - path: /*
         name: X-Frame-Options
