@@ -3,7 +3,7 @@ services:
     name: spark-connect-feed
     env: static
     buildCommand: npm install --legacy-peer-deps && npm run build
-    staticPublishPath: ./dist
+    staticPublishPath: dist
     pullRequestPreviewsEnabled: true
     headers:
       - path: /*
