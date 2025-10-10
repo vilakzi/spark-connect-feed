@@ -2,6 +2,7 @@ import * as React from "react"
 import * as RechartsPrimitive from "recharts"
 
 import { cn } from "@/lib/utils"
+import { safeCssValue } from "@/lib/contentSecurity"
 
 // Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = { light: "", dark: ".dark" } as const
@@ -94,10 +95,14 @@ ${colorConfig
       itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
       itemConfig.color;
     
-    // Validate color is safe CSS color
+    // Validate and sanitize color is safe CSS color
     const colorRegex = /^(#[0-9a-f]{3,8}|hsl\([^)]*\)|rgb\([^)]*\)|\w+)$/i;
     if (color && colorRegex.test(color)) {
-      return `  --color-${key}: ${color};`;
+      // Additional sanitization using security utility
+      const safeColor = safeCssValue(color);
+      if (safeColor) {
+        return `  --color-${key}: ${safeColor};`;
+      }
     }
     return null;
   })
