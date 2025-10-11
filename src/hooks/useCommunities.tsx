@@ -72,10 +72,20 @@ export const useCommunities = () => {
     mutationFn: async (communityData: Partial<Community> & { name: string }) => {
       if (!user) throw new Error('User not authenticated');
 
+      // Validate and sanitize input
+      const { communitySchema } = await import('@/lib/validationSchemas');
+      const validated = communitySchema.parse(communityData);
+
       const { data, error } = await supabase
         .from('communities')
         .insert({
-          ...communityData,
+          name: validated.name,
+          description: validated.description,
+          privacy_level: validated.privacy_level,
+          category: validated.category,
+          tags: validated.tags,
+          image_url: validated.image_url,
+          banner_url: validated.banner_url,
           creator_id: user.id
         })
         .select()

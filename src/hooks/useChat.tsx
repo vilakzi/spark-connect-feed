@@ -176,12 +176,19 @@ export const useChat = () => {
     if (!user || !content.trim()) return;
 
     try {
+      // Validate and sanitize input
+      const { messageSchema } = await import('@/lib/validationSchemas');
+      const validated = messageSchema.parse({
+        content,
+        conversation_id: conversationId
+      });
+
       const { error } = await supabase
         .from('messages')
         .insert({
-          conversation_id: conversationId,
+          conversation_id: validated.conversation_id,
           sender_id: user.id,
-          content: content.trim(),
+          content: validated.content,
           message_type: 'text'
         });
 
@@ -191,9 +198,10 @@ export const useChat = () => {
       await updateTypingStatus(conversationId, false);
     } catch (error) {
       console.error('Error sending message:', error);
+      const errorMessage = error instanceof Error ? error.message : "Please try again";
       toast({
         title: "Error sending message",
-        description: "Please try again",
+        description: errorMessage,
         variant: "destructive"
       });
     }

@@ -257,13 +257,21 @@ export const useEnhancedLiveStream = () => {
     if (!user || !message.trim()) return;
 
     try {
+      // Validate and sanitize input
+      const { streamChatSchema } = await import('@/lib/validationSchemas');
+      const validated = streamChatSchema.parse({
+        message,
+        stream_id: streamId,
+        message_type: messageType
+      });
+
       const { data, error } = await supabase
         .from('stream_chat')
         .insert({
-          stream_id: streamId,
+          stream_id: validated.stream_id,
           user_id: user.id,
-          message: message.trim(),
-          message_type: messageType,
+          message: validated.message,
+          message_type: validated.message_type,
           metadata: {}
         })
         .select(`

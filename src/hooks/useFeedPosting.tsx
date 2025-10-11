@@ -176,7 +176,15 @@ export const useFeedPosting = () => {
     setUploadProgress({});
 
     try {
-      // Step 1: Process media files (compress images, generate video thumbnails)
+      // Step 1: Validate and sanitize input
+      const { postSchema } = await import('@/lib/validationSchemas');
+      const validatedContent = postSchema.parse({
+        content: postData.content,
+        privacy_level: postData.privacy || 'public',
+        media_type: postData.media.length > 0 ? postData.media[0].type.split('/')[0] as 'text' | 'image' | 'video' : 'text'
+      });
+
+      // Step 2: Process media files (compress images, generate video thumbnails)
       const processedMedia: MediaFile[] = [];
       
       for (const [index, mediaFile] of postData.media.entries()) {
@@ -196,15 +204,16 @@ export const useFeedPosting = () => {
         }
       }
 
-      // Step 2: Extract hashtags and mentions
+      // Step 3: Extract hashtags and mentions
       const extractedData = extractHashtagsAndMentions(postData.content);
 
-      // Step 3: Insert the new post record
+      // Step 4: Insert the new post record with validated data
       const { data: newPost, error: postError } = await supabase
         .from('posts')
         .insert({
-          content: postData.content,
-          privacy_level: postData.privacy || 'public',
+          content: validatedContent.content,
+          privacy_level: validatedContent.privacy_level,
+          media_type: validatedContent.media_type,
           user_id: user.id
         })
         .select()
