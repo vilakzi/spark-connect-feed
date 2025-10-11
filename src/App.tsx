@@ -11,6 +11,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Suspense, lazy, useEffect } from "react";
 import { setupPerformanceOptimizations } from "@/lib/performanceOptimizations";
 import { logInfo } from '@/lib/secureLogger';
+import { BUILD_VERSION } from './version';
 
 // Lazy load pages for code splitting
 const Index = lazy(() => import("./pages/Index"));
@@ -67,7 +68,7 @@ const queryClient = new QueryClient({
 const App = () => {
   // Setup performance optimizations on mount
   useEffect(() => {
-    logInfo('Initializing performance optimizations', {}, 'App');
+    logInfo('Initializing performance optimizations', { build: BUILD_VERSION }, 'App');
     const cleanup = setupPerformanceOptimizations();
     
     return cleanup;
