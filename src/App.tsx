@@ -8,6 +8,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import { AdminRoute } from "@/components/admin/AdminRoute";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Suspense, lazy, useEffect } from "react";
 import { setupPerformanceOptimizations } from "@/lib/performanceOptimizations";
 import { logInfo } from '@/lib/secureLogger';
@@ -38,11 +39,7 @@ const Analytics = lazy(() => import("./pages/admin/Analytics").then(module => ({
 const AdminSettings = lazy(() => import("./pages/admin/AdminSettings").then(module => ({ default: module.AdminSettings })));
 
 // Loading component for Suspense fallback
-const LoadingSpinner = () => (
-  <div className="flex items-center justify-center min-h-screen">
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-  </div>
-);
+const LoadingFallback = () => <LoadingSpinner size="lg" />;
 
 // Optimized QueryClient with performance settings
 const queryClient = new QueryClient({
@@ -83,7 +80,7 @@ const App = () => {
             <Sonner />
             <BrowserRouter>
               <ErrorBoundary>
-                <Suspense fallback={<LoadingSpinner />}>
+                <Suspense fallback={<LoadingFallback />}>
                   <Routes>
                     <Route path="/auth" element={<Auth />} />
                     <Route path="/" element={
