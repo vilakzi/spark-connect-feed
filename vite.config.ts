@@ -23,41 +23,25 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: {
       output: {
         manualChunks: (id: string) => {
-          // Core React libraries
-          if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
-            return 'react-vendor';
-          }
-          
-          // All Radix UI components
-          if (id.includes('@radix-ui/')) {
-            return 'radix-vendor';
-          }
-          
-          // Major UI libraries
-          if (id.includes('lucide-react') || id.includes('tailwind-merge') || 
-              id.includes('class-variance-authority') || id.includes('sonner')) {
-            return 'ui-vendor';
-          }
-          
-          // Data and state management
-          if (id.includes('@tanstack/react-query') || id.includes('@supabase/supabase-js')) {
-            return 'data-vendor';
-          }
-          
-          // Chart libraries
-          if (id.includes('recharts')) {
-            return 'chart-vendor';
-          }
-          
-          // If it's a node_modules dependency but not categorized above, put it in vendor
+          // Simplified chunking to reduce build complexity
           if (id.includes('node_modules')) {
+            // Group all React-related packages
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+              return 'react-vendor';
+            }
+            // Group all UI libraries
+            if (id.includes('@radix-ui') || id.includes('lucide-react')) {
+              return 'ui-vendor';
+            }
+            // Everything else goes to vendor
             return 'vendor';
           }
         }
       }
     },
-    chunkSizeWarningLimit: 600, // Increase limit to 600kb
+    chunkSizeWarningLimit: 1000,
     target: 'esnext',
-    minify: 'esbuild', // Use esbuild instead of terser for faster builds
+    minify: 'esbuild',
+    sourcemap: false, // Disable sourcemaps for faster builds
   },
 }));
