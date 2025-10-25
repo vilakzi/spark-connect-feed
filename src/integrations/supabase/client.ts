@@ -2,8 +2,11 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = "https://galrcqwogqqdsqdzfrrd.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdhbHJjcXdvZ3FxZHNxZHpmcnJkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg0NzQ1MDUsImV4cCI6MjA2NDA1MDUwNX0.95iX-m8r0TqDOS0_kR-3-1xgiZMofPARvMZHzyFrPf0";
+// Prefer environment variables when available; fall back to generated defaults.
+const SUPABASE_URL = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_SUPABASE_URL) 
+  || "https://galrcqwogqqdsqdzfrrd.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_SUPABASE_ANON_KEY)
+  || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdhbHJjcXdvZ3FxZHNxZHpmcnJkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg0NzQ1MDUsImV4cCI6MjA2NDA1MDUwNX0.95iX-m8r0TqDOS0_kR-3-1xgiZMofPARvMZHzyFrPf0";
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
