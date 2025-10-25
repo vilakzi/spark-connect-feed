@@ -8,7 +8,8 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import { AdminRoute } from "@/components/admin/AdminRoute";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect } from "react";
+import testSupabaseConnection from "@/integrations/supabase/test-connection";
 
 // Lazy load pages for code splitting
 const Index = lazy(() => import("./pages/Index"));
@@ -50,51 +51,54 @@ const queryClient = new QueryClient({
   },
 });
 
-const App = () => (
-  <ErrorBoundary>
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <ErrorBoundary>
-              <Suspense fallback={<LoadingSpinner />}>
-                <Routes>
-                  <Route path="/auth" element={<Auth />} />
-                  <Route path="/" element={
-                    <ProtectedRoute>
-                      <ErrorBoundary>
-                        <Index />
-                      </ErrorBoundary>
-                    </ProtectedRoute>
-                  } />
-                  
-                  {/* Admin Routes */}
-                  <Route path="/admin" element={
-                    <AdminRoute>
-                      <ErrorBoundary>
-                        <AdminLayout />
-                      </ErrorBoundary>
-                    </AdminRoute>
-                  }>
-                    <Route index element={<AdminDashboard />} />
-                    <Route path="users" element={<UserManagement />} />
-                    <Route path="content" element={<ContentModeration />} />
-                    <Route path="analytics" element={<Analytics />} />
-                    <Route path="settings" element={<AdminSettings />} />
-                  </Route>
-                  
-                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </Suspense>
-            </ErrorBoundary>
-          </BrowserRouter>
-        </TooltipProvider>
-      </AuthProvider>
-    </QueryClientProvider>
-  </ErrorBoundary>
-);
+const App = () => {
+  useEffect(() => {
+    testSupabaseConnection();
+  }, []);
+  return (
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <ErrorBoundary>
+                <Suspense fallback={<LoadingSpinner />}>
+                  <Routes>
+                    <Route path="/auth" element={<Auth />} />
+                    <Route path="/" element={
+                      <ProtectedRoute>
+                        <ErrorBoundary>
+                          <Index />
+                        </ErrorBoundary>
+                      </ProtectedRoute>
+                    } />
+                    {/* Admin Routes */}
+                    <Route path="/admin" element={
+                      <AdminRoute>
+                        <ErrorBoundary>
+                          <AdminLayout />
+                        </ErrorBoundary>
+                      </AdminRoute>
+                    }>
+                      <Route index element={<AdminDashboard />} />
+                      <Route path="users" element={<UserManagement />} />
+                      <Route path="content" element={<ContentModeration />} />
+                      <Route path="analytics" element={<Analytics />} />
+                      <Route path="settings" element={<AdminSettings />} />
+                    </Route>
+                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </Suspense>
+              </ErrorBoundary>
+            </BrowserRouter>
+          </TooltipProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
+  );
+};
 
 export default App;
