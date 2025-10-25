@@ -1,4 +1,34 @@
-# This workflow will trigger Datadog Synthetic tests within your Datadog organisation
+name: Run Datadog Synthetic tests
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    # If DD API or APP keys are missing, print a warning and skip running the Datadog action.
+    - name: Warn missing Datadog keys
+      if: ${{ !secrets.DD_API_KEY || !secrets.DD_APP_KEY }}
+      run: |
+        echo "Skipping Datadog Synthetic tests: DD_API_KEY or DD_APP_KEY is missing."
+        echo "Add the secrets at: https://github.com/${{ github.repository }}/settings/secrets/actions"
+        echo "For Datadog keys documentation see: https://docs.datadoghq.com/account_management/api-app-keys/"
+
+    # Run Synthetic tests only when both secrets are present
+    - name: Run Datadog Synthetic tests
+      if: ${{ secrets.DD_API_KEY && secrets.DD_APP_KEY }}
+      uses: DataDog/synthetics-ci-github-action@87b505388a22005bb8013481e3f73a367b9a53eb # v1.4.0
+      with:
+        api_key: ${{secrets.DD_API_KEY}}
+        app_key: ${{secrets.DD_APP_KEY}}
+        test_search_query: 'tag:e2e-tests' #Modify this tag to suit your tagging strategy# This workflow will trigger Datadog Synthetic tests within your Datadog organisation
 # For more information on running Synthetic tests within your GitHub workflows see: https://docs.datadoghq.com/synthetics/cicd_integrations/github_actions/
 
 # This workflow uses actions that are not certified by GitHub.
